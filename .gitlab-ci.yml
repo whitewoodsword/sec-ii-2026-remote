@@ -1,22 +1,49 @@
 stages:
-  - trigger
+  - style
+  - test
 
-# 触发后端 pipeline
-backend:
-  stage: trigger
-  trigger:
-    include:
-      - local: .gitlab/backend.yml
-  rules:
-    - changes:
-        - backend/**/*
+style:frontend:
+  stage: style
+  image: node:20
+  before_script:
+    - cd frontend && npm ci
+  script:
+    - npm run lint
+  cache:
+    key: frontend-deps
+    paths:
+      - frontend/node_modules/
+  allow_failure: false
 
-# 触发前端 pipeline
-frontend:
-  stage: trigger
-  trigger:
-    include:
-      - local: .gitlab/frontend.yml
-  rules:
-    - changes:
-        - frontend/**/*
+style:backend:
+  stage: style
+  image: maven:3.9-eclipse-temurin-17
+  script:
+    - cd backend && mvn spotless:check
+  cache:
+    key: maven-deps
+    paths:
+      - ~/.m2/repository
+  allow_failure: false
+
+test:frontend:
+  stage: test
+  image: node:20
+  before_script:
+    - cd frontend && npm ci
+  script:
+    - npm run build
+  cache:
+    key: frontend-deps
+    paths:
+      - frontend/node_modules/
+
+test:backend:
+  stage: test
+  image: maven:3.9-eclipse-temurin-17
+  script:
+    - cd backend && mvn test
+  cache:
+    key: maven-deps
+    paths:
+      - ~/.m2/repository

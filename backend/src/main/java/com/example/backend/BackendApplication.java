@@ -6,7 +6,7 @@ import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 
 
 
-@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
+@SpringBootApplication()
 //项目初始化，暂时不使用数据库
 public class BackendApplication {
 

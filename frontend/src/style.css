@@ -57,14 +57,16 @@ body {
 h1,
 h2 {
   font-family: var(--heading);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-h);
+  letter-spacing: -0.02em;
 }
 
 h1 {
   font-size: 56px;
   letter-spacing: -1.68px;
   margin: 32px 0;
+  line-height: 1.2;
   @media (max-width: 1024px) {
     font-size: 36px;
     margin: 20px 0;
@@ -72,44 +74,49 @@ h1 {
 }
 h2 {
   font-size: 24px;
-  line-height: 118%;
+  line-height: 1.4;
   letter-spacing: -0.24px;
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   @media (max-width: 1024px) {
     font-size: 20px;
   }
 }
 p {
   margin: 0;
+  line-height: 1.7;
 }
 
 code,
 .counter {
   font-family: var(--mono);
   display: inline-flex;
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--text-h);
 }
 
 code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 4px 10px;
   background: var(--code-bg);
+  border: 1px solid var(--border);
 }
 
 .counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
+  font-size: 15px;
+  padding: 8px 16px;
+  border-radius: 8px;
   color: var(--accent);
   background: var(--accent-bg);
   border: 2px solid transparent;
-  transition: border-color 0.3s;
+  transition: all 0.3s ease;
   margin-bottom: 24px;
+  font-weight: 500;
 
   &:hover {
     border-color: var(--accent-border);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(170, 59, 255, 0.15);
   }
   &:focus-visible {
     outline: 2px solid var(--accent);
@@ -157,16 +164,34 @@ code {
 }
 
 #app {
-  width: 1126px;
+  width: 100%;
   max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
+  margin: 0;
+  border: none;
+  background-color: #ffff;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
 }
+
+footer {
+  text-align: center;
+  padding: 40px 40px;
+  background-color: #62055f;
+  backdrop-filter: blur(10px);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
+  font-size: 15px;
+  color: #9ca3af;
+  letter-spacing: 0.3px;
+  line-height: 1.6;
+}
+
+
 
 #center {
   display: flex;
@@ -175,10 +200,11 @@ code {
   place-content: center;
   place-items: center;
   flex-grow: 1;
+  padding: 60px 20px;
 
   @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
+    padding: 40px 20px;
+    gap: 20px;
   }
 }
 
@@ -189,16 +215,16 @@ code {
 
   & > div {
     flex: 1 1 0;
-    padding: 32px;
+    padding: 40px;
     @media (max-width: 1024px) {
-      padding: 24px 20px;
+      padding: 28px 20px;
     }
   }
 
   .icon {
     margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
   }
 
   @media (max-width: 1024px) {
@@ -220,8 +246,9 @@ code {
   list-style: none;
   padding: 0;
   display: flex;
-  gap: 8px;
+  gap: 12px;
   margin: 32px 0 0;
+  flex-wrap: wrap;
 
   .logo {
     height: 18px;
@@ -229,18 +256,22 @@ code {
 
   a {
     color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
+    font-size: 15px;
+    border-radius: 8px;
     background: var(--social-bg);
     display: flex;
-    padding: 6px 12px;
+    padding: 10px 16px;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     text-decoration: none;
-    transition: box-shadow 0.3s;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    border: 1px solid transparent;
 
     &:hover {
-      box-shadow: var(--shadow);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+      border-color: var(--border);
     }
     .button-icon {
       height: 18px;
@@ -249,7 +280,7 @@ code {
   }
 
   @media (max-width: 1024px) {
-    margin-top: 20px;
+    margin-top: 24px;
     flex-wrap: wrap;
     justify-content: center;
 

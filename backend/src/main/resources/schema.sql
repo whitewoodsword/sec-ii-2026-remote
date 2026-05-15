@@ -1,0 +1,80 @@
+USE campus_hub;
+
+-- 用户表
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '用户ID',
+    name VARCHAR(50) NOT NULL COMMENT '用户姓名',
+    phone VARCHAR(20) NOT NULL UNIQUE COMMENT '手机号',
+    password VARCHAR(100) NOT NULL COMMENT '密码',
+    score_num BIGINT DEFAULT 0 COMMENT '用户评分数（用来求平均）',
+    token VARCHAR(255) DEFAULT NULL COMMENT '认证令牌',
+    average_score DOUBLE DEFAULT NULL COMMENT '平均评分',
+    avatar_path VARCHAR(255) DEFAULT NULL COMMENT '头像路径',
+    is_admin BOOLEAN DEFAULT FALSE COMMENT '是否是管理员',
+    is_super_admin BOOLEAN DEFAULT FALSE COMMENT '是否是超级管理员',
+    INDEX idx_phone (phone)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
+
+-- 需求表
+CREATE TABLE IF NOT EXISTS demands (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '需求ID',
+    title VARCHAR(100) NOT NULL COMMENT '需求标题',
+    description TEXT COMMENT '需求描述',
+    category VARCHAR(50) NOT NULL COMMENT '分类：快递代取/学习辅导/二手交易/活动组队/其他',
+    publisher_id BIGINT NOT NULL COMMENT '发布者ID',
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态：PENDING/ACCEPTED/COMPLETED/CANCELLED',
+    location VARCHAR(100) DEFAULT NULL COMMENT '地点',
+    deadline DATETIME DEFAULT NULL COMMENT '截止时间',
+    reward DECIMAL(10, 2) DEFAULT 0.00 COMMENT '报酬',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    order_id BIGINT DEFAULT NULL COMMENT '需求订单ID',
+    picture_urls TEXT DEFAULT NULL COMMENT '图片路径',
+    FOREIGN KEY (publisher_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='需求表';
+
+-- 订单表
+CREATE TABLE IF NOT EXISTS orders (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '订单ID',
+    demand_id BIGINT NOT NULL COMMENT '需求ID',
+    publisher_id BIGINT NOT NULL COMMENT '发布者ID',
+    acceptor_id BIGINT NOT NULL COMMENT '承接者ID',
+    status VARCHAR(20) NOT NULL DEFAULT 'ACCEPTED' COMMENT '状态：ACCEPTED/IN_PROGRESS/COMPLETED/CANCELLED',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    comment_id BIGINT DEFAULT NULL COMMENT '评价ID',
+    FOREIGN KEY (demand_id) REFERENCES demands(id) ON DELETE CASCADE,
+    FOREIGN KEY (publisher_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (acceptor_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_order (comment_id),
+    INDEX idx_demand (demand_id),
+    INDEX idx_publisher (publisher_id),
+    INDEX idx_acceptor (acceptor_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单表';
+
+-- 评价表
+CREATE TABLE IF NOT EXISTS reviews (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '评价ID',
+    order_id BIGINT NOT NULL COMMENT '订单ID',
+    reviewer_id BIGINT NOT NULL COMMENT '评价者ID',
+    reviewed_id BIGINT NOT NULL COMMENT '被评价者ID',
+    score INT NOT NULL COMMENT '评分（1-5星）',
+    content TEXT COMMENT '评价内容',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_order (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评价表';
+
+-- 消息表
+CREATE TABLE IF NOT EXISTS messages (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '消息ID',
+    sender_id BIGINT NOT NULL COMMENT '发送者ID',
+    receiver_id BIGINT NOT NULL COMMENT '接收者ID',
+    content TEXT NOT NULL COMMENT '消息内容',
+    is_read TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否已读：0-未读，1-已读',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息表';

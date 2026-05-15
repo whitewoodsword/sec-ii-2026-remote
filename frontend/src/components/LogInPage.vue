@@ -60,7 +60,7 @@ const handleLogin = () => {
     showNotification('登录成功', '欢迎回来，'+data.user.name+'！祝你使用愉快。', true)
   })
   .catch(error => {
-    alert('登录失败')
+    alert('登录失败'+error)
 })
 
   //alert('登录信息:'+formData.value.phone+formData.value.password)
@@ -75,10 +75,6 @@ const goToRegister = () => {
 const handleForgotPassword = () => {
   // 你的忘记密码逻辑
   console.log('忘记密码')
-}
-
-const changePasswordView = () => {
-  showPassword.value = !showPassword.value
 }
 
 </script>

@@ -74,7 +74,7 @@ const handleRegister = () => {
     console.log(data)
   })
   .catch(error => {
-    alert('注册失败')
+    alert('注册失败'+error)
   })
   showNotification('通知', '亲爱的用户，您已经注册成功！')
 }

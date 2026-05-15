@@ -66,12 +66,12 @@ const handleClose = () => {
   emit('close')
 }
 
-// 点击遮罩层关闭(不使用)
+/*点击遮罩层关闭(不使用)
 const handleOverlayClick = (e) => {
   if (e.target === e.currentTarget) {
     handleClose()
   }
-}
+}*/
 
 // 键盘 ESC 关闭
 const handleEsc = (e) => {

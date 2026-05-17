@@ -60,4 +60,37 @@ public class UserController {
     public UserService.PlatformStatistics getStats() {
         return userService.getPlatformStatistics();
     }
+    @PutMapping("/name")
+    public Map<String, Object> editName(@RequestBody Map<String, String> params) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            User user = userService.updateUser(Long.parseLong(params.get("id")), params.get("name"), params.get("avatarPath"));
+            result.put("success", true);
+            result.put("message", "昵称修改成功");
+        } catch (Exception e) {
+            
+            result.put("success", false);
+            result.put("message", "昵称修改失败");
+            result.put("error", e.getMessage());
+        }
+        return result;
+    }
+
+    @PutMapping("/avatarPath")
+    public Map<String, Object> editAvatarPath(@RequestBody Map<String, String> params) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            User user = userService.updateUser(Long.parseLong(params.get("id")), params.get("name"), params.get("avatarPath"));
+            result.put("success", true);
+            result.put("message", "用户头像修改成功");
+        } catch (Exception e) {
+            
+            result.put("success", false);
+            result.put("message", "用户头像修改失败");
+            result.put("error", e.getMessage());
+        }
+        return result;
+    }
+
+    
 }

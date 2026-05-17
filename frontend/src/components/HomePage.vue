@@ -58,13 +58,19 @@ const closeDropdown = () => {
 
 // 处理个人主页点击
 const handleProfile = () => {
-  showNotification('功能开发中', '个人主页功能正在开发中，敬请期待！')
   showDropdown.value = false
+  router.push('/my/profile')
 }
 
 // 处理消息点击
 const handleMessages = () => {
   showNotification('功能开发中', '消息中心功能正在开发中，敬请期待！')
+  showDropdown.value = false
+}
+
+
+const handleAdmin = () => {
+  showNotification('功能开发中', '管理后台功能正在开发中，敬请期待！')
   showDropdown.value = false
 }
 
@@ -91,7 +97,7 @@ const handleAlertConfirm = () => {
           <div class="user-info">{{ authStore.user?.name || '用户' }}</div>
           <div class="avatar-wrapper" @click.stop="toggleDropdown">
             <img 
-              :src="authStore.user?.avatar || 'https://picsum.photos/40/40?random=1'" 
+              :src="authStore.user?.avatarPath? 'http://localhost:8080'+authStore.user.avatarPath: 'https://picsum.photos/40/40?random=1'" 
               alt="用户头像"
               class="avatar"
               :class="{ 'avatar-active': showDropdown }"
@@ -109,6 +115,9 @@ const handleAlertConfirm = () => {
                 消息
               </button>
               <div class="dropdown-divider"></div>
+              <template v-if="authStore.user?.isAdmin">
+                <button class="dropdown-item" @click="handleAdmin">管理后台</button>
+              </template>
               <button class="dropdown-item logout-item" @click="handleLogout">
                 退出登录
               </button>
@@ -143,8 +152,8 @@ const handleAlertConfirm = () => {
 }
 
 .header-headline {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 50px;
+  font-weight:600;
   color: #ffff;
   margin: 0;
 }
@@ -154,7 +163,7 @@ const handleAlertConfirm = () => {
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: 75px;
   background-color: #62055f;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;

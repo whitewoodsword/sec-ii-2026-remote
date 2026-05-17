@@ -62,7 +62,6 @@ public class UserService {
         String token = UUID.randomUUID().toString().replace("-", "");
         user.setToken(token);
         userRepository.updateToken(user.getId(), token);
-        
         return user;
     }
     

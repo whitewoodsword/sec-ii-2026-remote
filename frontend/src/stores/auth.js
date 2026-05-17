@@ -21,6 +21,20 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('user', JSON.stringify(data.user))
     }
   }
+
+  function updateUserName(name) {
+    user.value.name = name 
+    
+    // 持久化存储
+    localStorage.setItem('user', JSON.stringify(user.value))
+  }
+
+  function updateUserAvatarPath(avatarPath) {
+    user.value.avatarPath = avatarPath
+    
+    // 持久化存储
+    localStorage.setItem('user', JSON.stringify(user.value))
+  }
   
 
   function clearAuth() {
@@ -43,6 +57,8 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggedIn,
     setAuth,
     clearAuth,
+    updateUserName,
+    updateUserAvatarPath,
     logout
   }
 })

@@ -1,5 +1,5 @@
 package com.example.backend.entity;
-
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 @Entity
@@ -31,6 +31,7 @@ public class User {
     @Column(name = "avatar_path")
     private String avatarPath;
 
+    
     @Column(name = "is_admin")
     private boolean isAdmin;
 
@@ -73,9 +74,12 @@ public class User {
     public String getAvatarPath() { return avatarPath; }
     public void setAvatarPath(String avatarPath) { this.avatarPath = avatarPath; }
 
+    
+    @JsonProperty("isAdmin")
     public boolean isAdmin() { return isAdmin; }
     public void setAdmin(boolean admin) { isAdmin = admin; }
 
+    @JsonProperty("isSuperAdmin")
     public boolean isSuperAdmin() { return isSuperAdmin; }
     public void setSuperAdmin(boolean superAdmin) { isSuperAdmin = superAdmin; }
 }

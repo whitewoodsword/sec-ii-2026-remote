@@ -5,6 +5,8 @@ import WelcomePage from "../components/WelcomePage.vue";
 import HomePage from '../components/HomePage.vue';
 import LogInPage from '../components/LogInPage.vue';
 import RegisterPage from '../components/RegisterPage.vue';
+import UserProfilePage from '../components/UserProfilePage.vue';
+import test from '../components/SmallComponents/test.vue';
 
 
 // 定义路由（路径 -> 组件的映射）
@@ -23,6 +25,16 @@ const routes = [
         path: '/hello',
         name: 'hello',
         component: HelloWorld
+    },
+    {
+        path: '/test',
+        name: 'test',
+        component: test
+    },
+    {
+        path: '/my/profile',
+        name: 'userProfile',
+        component: UserProfilePage
     },
     {
         path: '/register',

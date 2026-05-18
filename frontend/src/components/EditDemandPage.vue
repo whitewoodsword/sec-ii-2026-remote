@@ -1,11 +1,14 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AlertBox from './SmallComponents/AlertBox.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+
+const demandId = ref(route.params.id)
 
 // 表单数据
 const formData = ref({
@@ -15,15 +18,23 @@ const formData = ref({
   location: '',
   deadline: '',
   reward: null,
-  pictureFiles: []
+  pictureUrls: '',
+  status: ''
 })
 
+// 现有图片URL列表
+const existingPictureUrls = ref([])
+// 新增的图片文件
+const newPictureFiles = ref([])
+// 要删除的图片URL
+const deletedPictureUrls = ref([])
 
 // 分类选项
 const categories = ['生活服务', '专业技术', '教育培训', '设计创意']
 
 // 加载状态
 const loading = ref(false)
+const fetching = ref(true)
 const uploading = ref(false)
 
 // 表单验证错误
@@ -49,7 +60,7 @@ const showNotification = (title, content, isHtml = false) => {
 }
 
 const handleAlertConfirm = () => {
-    router.back()
+  router.push(`/demands/${demandId.value}`)
 }
 
 // 验证表单
@@ -83,16 +94,74 @@ const validateForm = () => {
   return Object.keys(errors.value).length === 0
 }
 
-// 上传图片
-const uploadImages = async () => {
-  if (formData.value.pictureFiles.length === 0) {
+// 检查是否可以编辑
+const canEdit = computed(() => {
+  const status = formData.value.status
+  return status === 'PENDING' || status === 'REJECTED'
+})
+
+// 获取需求详情
+const fetchDemand = async () => {
+  fetching.value = true
+  
+  try {
+    const response = await fetch(`http://localhost:8080/demands/${demandId.value}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    
+    const result = await response.json()
+    
+    if (result.code === 200 && result.data) {
+      const demand = result.data
+      
+      // 检查是否是发布者
+      if (demand.publisherId !== authStore.user?.id) {
+        showNotification('无权限', '您不是该需求的发布者，无法编辑')
+        router.push(`/demands/${demandId.value}`)
+        return
+      }
+      
+      // 填充表单
+      formData.value = {
+        title: demand.title,
+        description: demand.description || '',
+        category: demand.category,
+        location: demand.location || '',
+        deadline: demand.deadline ? formatDateTime(demand.deadline) : '',
+        reward: demand.reward,
+        pictureUrls: demand.pictureUrls || '',
+        status: demand.status
+      }
+      
+      // 解析图片URL
+      if (formData.value.pictureUrls) {
+        existingPictureUrls.value = formData.value.pictureUrls.split(';').filter(url => url.trim())
+      }
+    } else {
+      throw new Error(result.message || '获取需求失败')
+    }
+  } catch (error) {
+    console.error('获取需求失败:', error)
+    showNotification('加载失败', error.message || '网络错误，请重试')
+    router.push('/demands')
+  } finally {
+    fetching.value = false
+  }
+}
+
+// 上传新增图片
+const uploadNewImages = async () => {
+  if (newPictureFiles.value.length === 0) {
     return ''
   }
   
   uploading.value = true
   const formDataObj = new FormData()
   
-  for (const file of formData.value.pictureFiles) {
+  for (const file of newPictureFiles.value) {
     formDataObj.append('files', file)
   }
   
@@ -134,17 +203,23 @@ const handleImageSelect = (event) => {
     }
   }
   
-  formData.value.pictureFiles.push(...files)
+  newPictureFiles.value.push(...files)
   event.target.value = ''
 }
 
-// 移除待上传图片
-const removePendingImage = (index) => {
-  formData.value.pictureFiles.splice(index, 1)
+// 移除现有图片
+const removeExistingImage = (index, url) => {
+  existingPictureUrls.value.splice(index, 1)
+  deletedPictureUrls.value.push(url)
 }
 
-// 获取图片预览URL
-const getPreviewUrl = (file) => {
+// 移除新增图片
+const removeNewImage = (index) => {
+  newPictureFiles.value.splice(index, 1)
+}
+
+// 获取新增图片预览URL
+const getNewImagePreviewUrl = (file) => {
   return URL.createObjectURL(file)
 }
 
@@ -162,23 +237,33 @@ const handleSubmit = async () => {
     return
   }
   
-  if (!authStore.isLoggedIn) {
-    showNotification('请先登录', '您需要登录后才能发布需求')
-    router.push('/login')
+  if (!canEdit.value) {
+    showNotification('无法编辑', '当前状态不允许编辑，只有待接取或被拒绝的需求可以编辑')
     return
   }
   
   loading.value = true
   
-  // 上传图片
-  let pictureUrls = ''
-  if (formData.value.pictureFiles.length > 0) {
-    const urls = await uploadImages()
+  // 上传新增图片
+  let newPictureUrls = ''
+  if (newPictureFiles.value.length > 0) {
+    const urls = await uploadNewImages()
     if (urls === null) {
       loading.value = false
       return
     }
-    pictureUrls = urls
+    newPictureUrls = urls
+  }
+  
+  // 保留未被删除的现有图片
+  const keepPictureUrls = existingPictureUrls.value.join(';')
+  
+  // 合并图片URL
+  let finalPictureUrls = keepPictureUrls
+  if (newPictureUrls) {
+    finalPictureUrls = finalPictureUrls 
+      ? `${finalPictureUrls};${newPictureUrls}` 
+      : newPictureUrls
   }
   
   // 构建请求数据
@@ -186,16 +271,15 @@ const handleSubmit = async () => {
     title: formData.value.title.trim(),
     description: formData.value.description?.trim() || '',
     category: formData.value.category,
-    publisherId: authStore.user.id,
     location: formData.value.location?.trim() || '',
     deadline: formData.value.deadline ? new Date(formData.value.deadline).toISOString() : null,
     reward: formData.value.reward ? parseFloat(formData.value.reward) : null,
-    pictureUrls: pictureUrls
+    pictureUrls: finalPictureUrls
   }
   
   try {
-    const response = await fetch('http://localhost:8080/demands/create', {
-      method: 'POST',
+    const response = await fetch(`http://localhost:8080/demands/${demandId.value}?publisherId=${authStore.user.id}`, {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authStore.token}`
@@ -205,14 +289,14 @@ const handleSubmit = async () => {
     
     const result = await response.json()
     
-    if (result.code === 200 || response.status === 201) {
-      showNotification('发布成功', '您的需求已成功发布！即将返回上一页。')
+    if (result.code === 200) {
+      showNotification('编辑成功', '您的需求已更新成功！')
     } else {
-      throw new Error(result.message || '发布失败')
+      throw new Error(result.message || '编辑失败')
     }
   } catch (error) {
-    console.error('发布失败:', error)
-    showNotification('发布失败', error.message || '网络错误，请重试')
+    console.error('编辑失败:', error)
+    showNotification('编辑失败', error.message || '网络错误，请重试')
   } finally {
     loading.value = false
   }
@@ -222,22 +306,43 @@ const handleSubmit = async () => {
 const goBack = () => {
   router.back()
 }
+
+onMounted(() => {
+  if (!authStore.isLoggedIn) {
+    showNotification('请先登录', '您需要登录后才能编辑需求')
+    router.push('/login')
+    return
+  }
+  fetchDemand()
+})
 </script>
 
 <template>
-  <div class="create-demand-page">
-    <div class="create-demand-container">
+  <div class="edit-demand-page">
+    <div class="edit-demand-container">
       <!-- 头部 -->
       <div class="page-header">
         <button class="back-btn" @click="goBack">
           <span class="back-icon">←</span> 返回
         </button>
-        <h1 class="page-title">发布新需求</h1>
+        <h1 class="page-title">编辑需求</h1>
         <div class="placeholder"></div>
       </div>
 
+      <!-- 加载中 -->
+      <div v-if="fetching" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>加载中...</p>
+      </div>
+
       <!-- 表单 -->
-      <form @submit.prevent="handleSubmit" class="demand-form">
+      <form v-else @submit.prevent="handleSubmit" class="demand-form">
+        <!-- 状态提示 -->
+        <div v-if="!canEdit" class="status-warning">
+          <span class="warning-icon">⚠️</span>
+          <span>当前状态为【{{ formData.status }}】，无法编辑。只有待接取或被拒绝的需求可以编辑。</span>
+        </div>
+
         <!-- 标题 -->
         <div class="form-section">
           <label class="form-label required">需求标题</label>
@@ -248,6 +353,7 @@ const goBack = () => {
             class="form-input"
             :class="{ 'error': errors.title }"
             maxlength="100"
+            :disabled="!canEdit"
           />
           <p v-if="errors.title" class="error-message">{{ errors.title }}</p>
           <p class="hint-text">{{ formData.title.length }}/100</p>
@@ -263,7 +369,8 @@ const goBack = () => {
               type="button"
               class="category-btn"
               :class="{ 'active': formData.category === cat }"
-              @click="formData.category = cat"
+              @click="canEdit && (formData.category = cat)"
+              :disabled="!canEdit"
             >
               {{ cat }}
             </button>
@@ -280,6 +387,7 @@ const goBack = () => {
             class="form-textarea"
             rows="6"
             maxlength="2000"
+            :disabled="!canEdit"
           ></textarea>
           <p class="hint-text">{{ formData.description.length }}/2000</p>
         </div>
@@ -292,6 +400,7 @@ const goBack = () => {
             v-model="formData.location"
             placeholder="例如：XX校区XX教学楼"
             class="form-input"
+            :disabled="!canEdit"
           />
         </div>
 
@@ -304,6 +413,7 @@ const goBack = () => {
             class="form-input"
             :class="{ 'error': errors.deadline }"
             :min="formatDateTime(new Date().toISOString())"
+            :disabled="!canEdit"
           />
           <p v-if="errors.deadline" class="error-message">{{ errors.deadline }}</p>
           <p class="hint-text">不填写表示无截止时间</p>
@@ -322,28 +432,49 @@ const goBack = () => {
               min="0"
               class="form-input reward-input"
               :class="{ 'error': errors.reward }"
+              :disabled="!canEdit"
             />
           </div>
           <p v-if="errors.reward" class="error-message">{{ errors.reward }}</p>
           <p class="hint-text">可不填写，由双方协商</p>
         </div>
 
-        <!-- 图片上传 -->
+        <!-- 图片管理 -->
         <div class="form-section">
-          <label class="form-label">上传图片</label>
+          <label class="form-label">需求图片</label>
           
-          <!-- 待上传图片预览 -->
-          <div v-if="formData.pictureFiles.length > 0" class="image-preview-grid">
+          <!-- 现有图片预览 -->
+          <div v-if="existingPictureUrls.length > 0" class="image-preview-grid">
             <div 
-              v-for="(file, index) in formData.pictureFiles" 
+              v-for="(url, index) in existingPictureUrls" 
               :key="index" 
               class="image-preview-item"
             >
-              <img :src="getPreviewUrl(file)" :alt="file.name" class="preview-image" />
+              <img :src="`http://localhost:8080${url}`" alt="需求图片" class="preview-image" />
               <button 
+                v-if="canEdit"
                 type="button" 
                 class="remove-image-btn" 
-                @click="removePendingImage(index)"
+                @click="removeExistingImage(index, url)"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          
+          <!-- 新增图片预览 -->
+          <div v-if="newPictureFiles.length > 0" class="image-preview-grid">
+            <div 
+              v-for="(file, index) in newPictureFiles" 
+              :key="`new-${index}`" 
+              class="image-preview-item"
+            >
+              <img :src="getNewImagePreviewUrl(file)" :alt="file.name" class="preview-image" />
+              <button 
+                v-if="canEdit"
+                type="button" 
+                class="remove-image-btn" 
+                @click="removeNewImage(index)"
               >
                 ×
               </button>
@@ -351,7 +482,7 @@ const goBack = () => {
           </div>
           
           <!-- 上传按钮 -->
-          <div class="upload-area">
+          <div v-if="canEdit" class="upload-area">
             <label class="upload-btn">
               <input
                 type="file"
@@ -361,7 +492,7 @@ const goBack = () => {
                 :disabled="uploading"
               />
               <span class="upload-icon">📷</span>
-              <span>选择图片</span>
+              <span>添加图片</span>
             </label>
             <p class="hint-text">支持jpg、png格式，单张不超过5MB，可多选</p>
           </div>
@@ -372,9 +503,9 @@ const goBack = () => {
           <button 
             type="submit" 
             class="submit-btn" 
-            :disabled="loading || uploading"
+            :disabled="loading || uploading || !canEdit"
           >
-            {{ loading ? '发布中...' : (uploading ? '上传图片中...' : '发布需求') }}
+            {{ loading ? '保存中...' : (uploading ? '上传图片中...' : '保存修改') }}
           </button>
           <button type="button" class="cancel-btn" @click="goBack">
             取消
@@ -396,13 +527,13 @@ const goBack = () => {
 </template>
 
 <style scoped>
-.create-demand-page {
+.edit-demand-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #62055f 0%, #8b1a86 100%);
   padding: 40px 20px;
 }
 
-.create-demand-container {
+.edit-demand-container {
   max-width: 800px;
   margin: 0 auto;
   background: white;
@@ -414,7 +545,7 @@ const goBack = () => {
 /* 头部 */
 .page-header {
   display: flex;
- align-items: center;
+  align-items: center;
   justify-content: space-between;
   padding: 24px 32px;
   border-bottom: 1px solid #e5e4e7;
@@ -452,6 +583,50 @@ const goBack = () => {
 
 .placeholder {
   width: 80px;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  color: #666;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e4e7;
+  border-top-color: #62055f;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 状态警告 */
+.status-warning {
+  background: #fff3e0;
+  border: 1px solid #ffb74d;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #e65100;
+  font-size: 14px;
+}
+
+.warning-icon {
+  font-size: 18px;
 }
 
 /* 表单 */
@@ -494,6 +669,11 @@ const goBack = () => {
   box-shadow: 0 0 0 3px rgba(98, 5, 95, 0.1);
 }
 
+.form-input:disabled {
+  background: #f5f5f5;
+  color: #999;
+}
+
 .form-input.error {
   border-color: #e31829;
 }
@@ -515,6 +695,11 @@ const goBack = () => {
 .form-textarea:focus {
   border-color: #62055f;
   box-shadow: 0 0 0 3px rgba(98, 5, 95, 0.1);
+}
+
+.form-textarea:disabled {
+  background: #f5f5f5;
+  color: #999;
 }
 
 .error-message {
@@ -547,7 +732,7 @@ const goBack = () => {
   transition: all 0.2s ease;
 }
 
-.category-btn:hover {
+.category-btn:hover:not(:disabled) {
   border-color: #62055f;
   color: #62055f;
 }
@@ -556,6 +741,11 @@ const goBack = () => {
   background: #62055f;
   border-color: #62055f;
   color: white;
+}
+
+.category-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* 酬金输入框 */
@@ -576,7 +766,7 @@ const goBack = () => {
   padding-left: 32px;
 }
 
-/* 图片上传区域 */
+/* 图片管理区域 */
 .image-preview-grid {
   display: flex;
   flex-wrap: wrap;
@@ -707,7 +897,7 @@ const goBack = () => {
 
 /* 响应式 */
 @media (max-width: 640px) {
-  .create-demand-container {
+  .edit-demand-container {
     border-radius: 16px;
   }
   
@@ -730,6 +920,11 @@ const goBack = () => {
   .category-btn {
     padding: 6px 16px;
     font-size: 13px;
+  }
+  
+  .image-preview-item {
+    width: 80px;
+    height: 80px;
   }
 }
 </style>

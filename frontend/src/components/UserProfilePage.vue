@@ -2,7 +2,7 @@
   <div class="user-profile-page" @click="closeDropdowns">
     <header class="fixed-header">
       <div class="header-left">
-        <h1 class="header-headline">校园互助服务平台</h1>
+        <h1 class="header-headline" @click="router.push('/')">校园互助服务平台</h1>
       </div>
       <div class="header-right">
         <div class="user-info">{{ authStore.user?.name || '用户' }}</div>
@@ -125,7 +125,7 @@
                 <span class="btn-icon">💬</span>
                 我的消息
               </button>
-              <button class="action-btn" @click="handleMyNeeds">
+              <button class="action-btn" @click="handleMyDemands">
                 <span class="btn-icon">📢</span>
                 我的需求
               </button>
@@ -341,8 +341,8 @@ const handleMessagesCenter = () => {
 }
 
 // 功能按钮：我的需求
-const handleMyNeeds = () => {
-  showNotification('功能开发中', '我的需求功能正在开发中，敬请期待！')
+const handleMyDemands = () => {
+  router.push('/my/demands')
 }
 
 // 通知框确认后的回调

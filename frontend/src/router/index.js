@@ -6,6 +6,10 @@ import HomePage from '../components/HomePage.vue';
 import LogInPage from '../components/LogInPage.vue';
 import RegisterPage from '../components/RegisterPage.vue';
 import UserProfilePage from '../components/UserProfilePage.vue';
+import CreateDemandPage from '../components/CreateDemandPage.vue';
+import EditDemandPage from '../components/EditDemandPage.vue';
+import DemandDetailPage from '../components/DemandDetailPage.vue';
+import MyDemandsPage from '../components/MyDemandsPage.vue';
 
 
 // 定义路由（路径 -> 组件的映射）
@@ -14,6 +18,16 @@ const routes = [
         path: '/',
         name: 'homepage',
         component: HomePage
+    },
+    {
+        path: '/demand/:id',
+        name: 'demandDetail',
+        component: DemandDetailPage
+    },
+    {
+        path: '/my/demands',
+        name: 'myDemands',
+        component: MyDemandsPage
     },
     {
         path: '/welcome',
@@ -29,6 +43,16 @@ const routes = [
         path: '/my/profile',
         name: 'userProfile',
         component: UserProfilePage
+    },
+    {
+        path: '/edit/demand/:id',
+        name: 'editDemand',
+        component: EditDemandPage
+    },
+    {
+        path: '/create/demand',
+        name: 'createDemand',
+        component: CreateDemandPage
     },
     {
         path: '/register',

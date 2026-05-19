@@ -1,6 +1,7 @@
 package com.example.backend.entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,7 +21,7 @@ public class Order {
     @Column(name = "acceptor_id", nullable = false)
     private Long acceptorId;
 
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "status", nullable = false, length = 32)
     private String status;
 
     @Column(name = "created_at", nullable = false)
@@ -29,10 +30,17 @@ public class Order {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Column(name = "latest_requester_note", length = 500)
+    private String latestRequesterNote;
+
     @Column(name = "comment_id")
     private Long commentId;
 
-    public Order() {}
+    public Order() {
+    }
 
     public Order(Long demandId, Long publisherId, Long acceptorId) {
         this.demandId = demandId;
@@ -43,28 +51,83 @@ public class Order {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public Long getDemandId() { return demandId; }
-    public void setDemandId(Long demandId) { this.demandId = demandId; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public Long getPublisherId() { return publisherId; }
-    public void setPublisherId(Long publisherId) { this.publisherId = publisherId; }
+    public Long getDemandId() {
+        return demandId;
+    }
 
-    public Long getAcceptorId() { return acceptorId; }
-    public void setAcceptorId(Long acceptorId) { this.acceptorId = acceptorId; }
+    public void setDemandId(Long demandId) {
+        this.demandId = demandId;
+    }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public Long getPublisherId() {
+        return publisherId;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setPublisherId(Long publisherId) {
+        this.publisherId = publisherId;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public Long getAcceptorId() {
+        return acceptorId;
+    }
 
-    public Long getCommentId() { return commentId; }
-    public void setCommentId(Long commentId) { this.commentId = commentId; }
+    public void setAcceptorId(Long acceptorId) {
+        this.acceptorId = acceptorId;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(LocalDateTime completedAt) {
+        this.completedAt = completedAt;
+    }
+
+    public String getLatestRequesterNote() {
+        return latestRequesterNote;
+    }
+
+    public void setLatestRequesterNote(String latestRequesterNote) {
+        this.latestRequesterNote = latestRequesterNote;
+    }
+
+    public Long getCommentId() {
+        return commentId;
+    }
+
+    public void setCommentId(Long commentId) {
+        this.commentId = commentId;
+    }
 }

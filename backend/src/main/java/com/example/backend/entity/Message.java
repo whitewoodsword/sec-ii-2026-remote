@@ -26,14 +26,21 @@ public class Message {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "type", nullable = false, length = 20)
+    private String type;
+
+    public static final String TYPE_CHAT = "CHAT";
+    public static final String TYPE_SYSTEM = "SYSTEM";
+
     public Message() {}
 
-    public Message(Long senderId, Long receiverId, String content) {
+    public Message(Long senderId, Long receiverId, String content, String type) {
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.content = content;
         this.isRead = false;
         this.createdAt = LocalDateTime.now();
+        this.type = type;
     }
 
     // Getters and Setters
@@ -51,6 +58,9 @@ public class Message {
 
     public boolean isRead() { return isRead; }
     public void setRead(boolean read) { isRead = read; }
+
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

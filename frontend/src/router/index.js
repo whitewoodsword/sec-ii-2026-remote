@@ -6,6 +6,7 @@ import HomePage from '../components/HomePage.vue';
 import LogInPage from '../components/LogInPage.vue';
 import RegisterPage from '../components/RegisterPage.vue';
 import UserProfilePage from '../components/UserProfilePage.vue';
+import MessagesPage from '../components/MessagesPage.vue';
 
 
 // 定义路由（路径 -> 组件的映射）
@@ -41,7 +42,11 @@ const routes = [
         name: 'login',
         component: LogInPage
     },
-    
+    {
+        path: '/messages',
+        name: 'messages',
+        component: MessagesPage
+    },
     {
         // 404 路由 - 匹配所有未定义的路径
         path: '/:pathMatch(.*)*',

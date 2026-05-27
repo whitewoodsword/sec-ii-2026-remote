@@ -11,6 +11,7 @@ import EditDemandPage from '../components/EditDemandPage.vue';
 import DemandDetailPage from '../components/DemandDetailPage.vue';
 import MyDemandsPage from '../components/MyDemandsPage.vue';
 import OrderWorkbenchPage from '../components/OrderWorkbenchPage.vue';
+import MessagesPage from '../components/MessagesPage.vue';
 
 
 // 定义路由（路径 -> 组件的映射）
@@ -71,7 +72,11 @@ const routes = [
         name: 'orderWorkbench',
         component: OrderWorkbenchPage
     },
-    
+    {   
+        path: '/messages',
+        name: 'messages',
+        component: MessagesPage
+    },
     {
         // 404 路由 - 匹配所有未定义的路径
         path: '/:pathMatch(.*)*',

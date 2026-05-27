@@ -64,8 +64,8 @@ const handleProfile = () => {
 
 // 处理消息点击
 const handleMessages = () => {
-  showNotification('功能开发中', '消息中心功能正在开发中，敬请期待！')
   showDropdown.value = false
+  router.push('/messages')
 }
 
 

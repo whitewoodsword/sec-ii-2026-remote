@@ -1,4 +1,3 @@
-// src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 import HelloWorld from "../components/HelloWorld.vue";
 import WelcomePage from "../components/WelcomePage.vue";
@@ -12,7 +11,7 @@ import DemandDetailPage from '../components/DemandDetailPage.vue';
 import MyDemandsPage from '../components/MyDemandsPage.vue';
 import OrderWorkbenchPage from '../components/OrderWorkbenchPage.vue';
 import MessagesPage from '../components/MessagesPage.vue';
-
+import ReviewPage from '../views/ReviewPage.vue'
 
 // 定义路由（路径 -> 组件的映射）
 const routes = [
@@ -76,6 +75,11 @@ const routes = [
         path: '/messages',
         name: 'messages',
         component: MessagesPage
+    },
+    {
+        path: '/review',
+        name: 'reviewPage',
+        component: ReviewPage
     },
     {
         // 404 路由 - 匹配所有未定义的路径

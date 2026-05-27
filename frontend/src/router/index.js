@@ -10,6 +10,7 @@ import CreateDemandPage from '../components/CreateDemandPage.vue';
 import EditDemandPage from '../components/EditDemandPage.vue';
 import DemandDetailPage from '../components/DemandDetailPage.vue';
 import MyDemandsPage from '../components/MyDemandsPage.vue';
+import OrderWorkbenchPage from '../components/OrderWorkbenchPage.vue';
 
 
 // 定义路由（路径 -> 组件的映射）
@@ -64,6 +65,11 @@ const routes = [
         path: '/login',
         name: 'login',
         component: LogInPage
+    },
+    {
+        path: '/orders/workbench',
+        name: 'orderWorkbench',
+        component: OrderWorkbenchPage
     },
     
     {

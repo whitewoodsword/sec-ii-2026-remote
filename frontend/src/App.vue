@@ -1,63 +1,40 @@
-<!-- src/App.vue -->
-<template>
-  <div id="app">
-
-    <router-view />
-      
-    <!-- 可选：页脚 -->
-    <footer>
-      <p>校园互助服务平台 (CampusHub)© </p>
-      <p>Group 67 For SEII2026版权所有</p>
-    </footer>
-  </div>
-</template>
-
 <script setup>
-// 可以监听路由变化
 import { watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
+
 watch(() => route.path, (newPath) => {
-  console.log('路由变化:', newPath)
+  console.log('route changed:', newPath)
 })
 </script>
 
-<style>
-/* 全局样式 */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-   user-select: none;  /* 标准语法 */
-  -webkit-user-select: none;  /* Safari */
-  -moz-user-select: none;  /* Firefox */
-  -ms-user-select: none;  /* IE/Edge */
-}
+<template>
+  <div id="app">
+    <router-view />
 
+    <footer class="app-footer">
+      <p>校园互助服务平台 CampusHub</p>
+      <p>Group 67 for SEII 2026</p>
+    </footer>
+  </div>
+</template>
+
+<style scoped>
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  color: #2c3e50;
+  min-height: 100vh;
 }
 
-nav {
-  padding: 20px;
+.app-footer {
   text-align: center;
-  background-color: #f8f9fa;
-  margin-bottom: 20px;
+  padding: 32px 20px;
+  background: #62055f;
+  color: #d4d4d8;
+  line-height: 1.7;
+  font-size: 14px;
 }
 
-nav a {
-  margin: 0 10px;
-  text-decoration: none;
-  color: #42b983;
-  font-weight: bold;
+.app-footer p {
+  margin: 0;
 }
-
-nav a.router-link-exact-active {
-  color: #2c3e50;
-}
-
 </style>

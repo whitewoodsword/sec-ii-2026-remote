@@ -2,12 +2,8 @@ package com.example.backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 
-
-
-@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
-//项目初始化，暂时不使用数据库
+@SpringBootApplication
 public class BackendApplication {
 
     public static void main(String[] args) {

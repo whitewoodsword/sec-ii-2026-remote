@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.backend.review.mapper.ReviewMapper">
+
+    <resultMap id="reviewMap" type="com.example.backend.review.entity.Review">
+        <id property="id" column="id"/>
+        <result property="orderId" column="order_id"/>
+        <result property="reviewerId" column="reviewer_id"/>
+        <result property="revieweeId" column="reviewee_id"/>
+        <result property="rating" column="rating"/>
+        <result property="comment" column="comment"/>
+        <result property="reviewerRole" column="reviewer_role"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.example.backend.review.entity.Review"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO review (order_id, reviewer_id, reviewee_id, rating, comment, reviewer_role)
+        VALUES (#{orderId}, #{reviewerId}, #{revieweeId}, #{rating}, #{comment}, #{reviewerRole})
+    </insert>
+
+    <select id="selectById" resultMap="reviewMap">
+        SELECT * FROM review WHERE id = #{id}
+    </select>
+
+    <select id="selectByOrderId" resultMap="reviewMap">
+        SELECT * FROM review WHERE order_id = #{orderId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByRevieweeId" resultMap="reviewMap">
+        SELECT * FROM review WHERE reviewee_id = #{revieweeId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByReviewerId" resultMap="reviewMap">
+        SELECT * FROM review WHERE reviewer_id = #{reviewerId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectAvgRatingByUserId" resultType="double">
+        SELECT COALESCE(AVG(rating), 0.0) FROM review WHERE reviewee_id = #{userId}
+    </select>
+
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(*) FROM review WHERE reviewee_id = #{userId}
+    </select>
+
+    <select id="existsByOrderIdAndReviewerId" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM review
+        WHERE order_id = #{orderId} AND reviewer_id = #{reviewerId}
+    </select>
+
+</mapper>

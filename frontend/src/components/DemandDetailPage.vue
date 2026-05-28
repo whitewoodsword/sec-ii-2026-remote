@@ -33,7 +33,7 @@ const showNotification = (title, content, isHtml = false) => {
 }
 
 const handleAlertConfirm = () => {
-  router.push('/demands')
+  //donothing
 }
 
 // 解析图片URL
@@ -150,9 +150,26 @@ const handleContact = () => {
 }
 
 // 接取订单
-const handleAccept = () => {
+const handleAccept = async () => {
   // TODO: 实现接取订单功能
-  showNotification('功能开发中', '接取订单功能正在开发中，敬请期待！')
+  try{
+     const response = await fetch(`http://localhost:8080/orders/create?demandId=${demandId.value}&userId=${authStore.user.id}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      },
+    })
+    const result = await response.json()
+    if (result.code === 200) {
+      showNotification('接取成功', '接取成功，请及时与该用户联完成订单系并')
+    } else {
+      console.log('接取失败:', result)
+      showNotification('接取失败', (result.message || '请稍后重试'))
+    }
+  }catch (error) {
+    console.error('接取订单失败:', error)
+    showNotification('接取订单失败', error.message || '请稍后重试')
+  }
 }
 
 // 返回

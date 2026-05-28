@@ -1,5 +1,6 @@
 package com.example.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -26,21 +27,18 @@ public class Message {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "type", nullable = false, length = 20)
-    private String type;
-
-    public static final String TYPE_CHAT = "CHAT";
-    public static final String TYPE_SYSTEM = "SYSTEM";
+    @Column(name = "conversation_id", nullable = false)
+    private Long conversationId;
 
     public Message() {}
 
-    public Message(Long senderId, Long receiverId, String content, String type) {
+    public Message(Long senderId, Long receiverId, String content, Long conversationId) {
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.content = content;
+        this.conversationId = conversationId;
         this.isRead = false;
         this.createdAt = LocalDateTime.now();
-        this.type = type;
     }
 
     // Getters and Setters
@@ -56,12 +54,13 @@ public class Message {
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
 
+    @JsonProperty("isRead")
     public boolean isRead() { return isRead; }
     public void setRead(boolean read) { isRead = read; }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public Long getConversationId() { return conversationId; }
 
+    public void setConversationId(Long conversationId) { this.conversationId = conversationId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

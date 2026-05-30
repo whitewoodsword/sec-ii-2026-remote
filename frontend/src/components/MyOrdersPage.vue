@@ -143,7 +143,7 @@
             </div>
           </div>
 
-          <Pagination
+          <PaginationComponent
             v-if="reviewTotalPages > 0"
             :current-page="reviewPage"
             :total-pages="reviewTotalPages"
@@ -209,7 +209,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
 import AlertBox from './SmallComponents/AlertBox.vue'
-import Pagination from './SmallComponents/Pagination.vue'
+import PaginationComponent from './SmallComponents/PaginationComponent.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -282,7 +282,6 @@ const getStatusClass = (status) => {
   return map[status] || ''
 }
 
-const canReview = (order) => order.status === 'COMPLETED' && !order.commentId && (order.publisherId === authStore.user?.id || order.acceptorId === authStore.user?.id)
 
 // API 调用
 const searchOrders = async () => {
@@ -404,10 +403,6 @@ const submitReview = async () => {
   reviewSubmitting.value = true
   try {
     const order = currentOrderForReview.value
-    // 确定被评价者ID（评价对方，不是自己）
-    const reviewedId = order.publisherId === authStore.user?.id 
-      ? order.acceptorId   // 发布者评价接单者
-      : order.publisherId  // 接单者评价发布者
     
     // 调用正确的 API：POST /reviews/create 使用 Query 参数
     const params = new URLSearchParams({

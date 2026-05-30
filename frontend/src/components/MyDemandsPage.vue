@@ -119,7 +119,7 @@
       </div>
 
       <!-- 分页 -->
-      <Pagination
+      <PaginationComponent
         v-if="totalPages > 1"
         :current-page="currentPage"
         :total-pages="totalPages"
@@ -143,7 +143,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AlertBox from './SmallComponents/AlertBox.vue'
-import Pagination from './SmallComponents/Pagination.vue'
+import PaginationComponent from './SmallComponents/PaginationComponent.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()

@@ -162,7 +162,6 @@ const handleContact = async () => {
       
       if (result.code === 200 && result.data) {
         // 获取到对话信息，跳转到会话详情页
-        const conversationId = result.data.id
         router.push(`/my/conversations`)
       }
     } else {

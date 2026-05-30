@@ -322,14 +322,14 @@ const fetchDemands = async () => {
 }
 
 // 获取排序字段
-const getSortByField = () => {
+/*const getSortByField = () => {
   switch (currentSort.value) {
     case 'distance': return 'location'
     case 'time': return 'createdAt'
     case 'credit': return 'publisherCredit'
     default: return 'createdAt'
   }
-}
+}*/
 
 // 获取进行中订单
 const fetchActiveOrders = async () => {
@@ -377,7 +377,7 @@ const fetchUserCredit = async () => {
 }
 
 // 接单操作
-const handleAcceptDemand = async (demand) => {
+/*const handleAcceptDemand = async (demand) => {
   if (!authStore.isLoggedIn) {
     router.push('/login')
     return
@@ -400,7 +400,7 @@ const handleAcceptDemand = async (demand) => {
     const msg = error.response?.data?.message || '接单失败，请稍后重试'
     showNotification('接单失败', msg)
   }
-}
+}*/
 
 // 启动轮询
 const startPolling = () => {

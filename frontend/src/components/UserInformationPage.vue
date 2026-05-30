@@ -329,9 +329,7 @@ const closeDropdowns = () => {
   showDropdown.value = false
 }
 
-const toggleDropdown = () => {
-  if (authStore.isLoggedIn) showDropdown.value = !showDropdown.value
-}
+
 
 const goToProfile = () => {
   showDropdown.value = false

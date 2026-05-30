@@ -280,7 +280,7 @@ const selectConversation = async (conv) => {
   scrollToBottom()
 }
 
-const updateMessagesIncrementally = (newMessages) => {
+/*const updateMessagesIncrementally = (newMessages) => {
   if (!newMessages || newMessages.length === 0) return false
   
   const existingMessageMap = new Map()
@@ -310,7 +310,7 @@ const updateMessagesIncrementally = (newMessages) => {
   }
   
   return hasChanges
-}
+}*/
 
 const loadMessages = async (conversationId, showLoading = false) => {
   if (!conversationId) return

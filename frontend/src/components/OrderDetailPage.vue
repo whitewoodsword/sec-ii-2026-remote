@@ -56,10 +56,6 @@ const statusMap = {
   'DISPUTED': { label: '争议中', color: '#eb2f96', bg: '#fff0f6' }
 }
 
-// 可更新的状态列表（接单者视角）
-const availableStatuses = [
-  { value: 'IN_PROGRESS', label: '开始进行' }
-]
 
 // 计算当前用户角色
 const userRole = computed(() => {

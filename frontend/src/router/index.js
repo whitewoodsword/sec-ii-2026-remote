@@ -14,6 +14,7 @@ import ReviewPage from '../views/ReviewPage.vue'
 import OrderDetailPage from '../components/OrderDetailPage.vue'
 import MyOrdersPage from '../components/MyOrdersPage.vue'
 import MyConversationsPage from '../components/MyConversationsPage.vue'
+import UserInformationPage from '../components/UserInformationPage.vue'
 
 // 定义路由（路径 -> 组件的映射）
 const routes = [
@@ -92,6 +93,11 @@ const routes = [
         path: '/my/conversations',
         name: 'myConversations',
         component: MyConversationsPage
+    },
+    {
+        path: '/user/:id',
+        name: 'UserInformation',
+        component: UserInformationPage
     },
     {
         // 404 路由 - 匹配所有未定义的路径

@@ -32,12 +32,17 @@
               class="avatar"
               :class="{ 'avatar-active': showDropdown }"
             />
+            <!-- 未读消息红点 -->
+            <span v-if="totalUnreadCount > 0" class="avatar-badge"></span>
           </div>
           <transition name="dropdown">
             <div v-if="showDropdown" class="dropdown-menu">
               <button class="dropdown-item" @click="goToProfile">个人主页</button>
               <div class="dropdown-divider"></div>
-              <button class="dropdown-item" @click="goToMessages">消息</button>
+              <button class="dropdown-item message-item" @click="goToMessages">
+                消息
+                <span v-if="totalUnreadCount > 0" class="message-badge">{{ totalUnreadCount > 99 ? '99+' : totalUnreadCount }}</span>
+              </button>
               <div class="dropdown-divider"></div>
               <template v-if="authStore.user?.isAdmin">
                 <button class="dropdown-item" @click="handleAdmin">管理后台</button>
@@ -118,22 +123,16 @@
                   <span class="meta-value">{{ demand.location || '未指定' }}</span>
                 </div>
                 <div class="meta-item">
-                  <span class="meta-label">发布者</span>
+                  <span class="meta-label">发布者用户ID</span>
                   <span class="meta-value credit" :class="getCreditClass(demand.publisherCredit)">
-                    {{ demand.publisherName || '用户' }} 
+                    {{ demand.publisherId || 'NULL' }} 
                     <span class="credit-score">{{ demand.publisherCredit ? `(${demand.publisherCredit})` : '' }}</span>
                   </span>
                 </div>
               </div>
               <div class="demand-footer">
                 <span class="demand-time">{{ formatRelativeTime(demand.createdAt) }}</span>
-                <button 
-                  class="accept-btn" 
-                  @click="handleAcceptDemand(demand)"
-                  :disabled="!authStore.isLoggedIn || demand.isOwn"
-                >
-                  {{ demand.isOwn ? '我的需求' : '接单' }}
-                </button>
+                <span v-if="demand.isOwn">我的需求</span>
               </div>
             </div>
           </div>
@@ -194,7 +193,6 @@
                 <strong>{{ completedOrdersCount }}</strong>
               </div>
             </div>
-            <button class="credit-detail-btn" @click="goToProfile">查看详情</button>
           </div>
         </aside>
       </div>
@@ -212,7 +210,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
 import AlertBox from './SmallComponents/AlertBox.vue'
@@ -238,6 +236,10 @@ const totalElements = ref(0)
 const activeOrders = ref([])
 const completedOrdersCount = ref(0)
 const userCredit = ref({ averageScore: null, scoreNum: 0 })
+const totalUnreadCount = ref(0)
+
+// 轮询定时器
+let pollingInterval = null
 
 // 通知
 const showAlert = ref(false)
@@ -274,7 +276,19 @@ const showNotification = (title, content) => {
   showAlert.value = true
 }
 
-// 获取需求列表
+// 获取未读消息总数
+const fetchTotalUnreadCount = async () => {
+  if (!authStore.isLoggedIn) return
+  try {
+    const response = await axios.get(`http://localhost:8080/messages/unread/count/${authStore.user.id}`)
+    if (response.data.code === 200 && response.data.data) {
+      totalUnreadCount.value = response.data.data.unreadCount || 0
+    }
+  } catch (error) {
+    console.error('获取未读消息数失败:', error)
+  }
+}
+
 // 获取需求列表
 const fetchDemands = async () => {
   loadingDemands.value = true
@@ -282,7 +296,7 @@ const fetchDemands = async () => {
     const params = new URLSearchParams({
       page: currentPage.value,
       size: pageSize.value,
-      status: 'PENDING'  // 只展示未接取的需求
+      status: 'PENDING'
     })
     if (selectedCategory.value) params.append('category', selectedCategory.value)
     if (searchKeyword.value) params.append('keyword', searchKeyword.value)
@@ -322,15 +336,12 @@ const fetchActiveOrders = async () => {
   if (!authStore.isLoggedIn) return
   loadingOrders.value = true
   try {
-    // 获取用户作为发布者或接单者的进行中订单
-    const response = await axios.get(`http://localhost:8080/orders/user/${authStore.user.id}`, {
-      params: { page: 0, size: 10, role: 'all', status: 'IN_PROGRESS' }
+    const response = await axios.get(`http://localhost:8080/orders/acceptor/${authStore.user.id}`, {
+      params: { page: 0, size: 10, status: 'ACCEPTED' }
     })
     if (response.data.code === 200 && response.data.data) {
       activeOrders.value = response.data.data.content || []
     }
-    console.log(response)
-    // 获取已完成订单数量
     const completedRes = await axios.get(`http://localhost:8080/orders/user/${authStore.user.id}`, {
       params: { page: 0, size: 1, status: 'COMPLETED' }
     })
@@ -355,7 +366,7 @@ const fetchUserCredit = async () => {
           averageScore: response.data.data.averageScore,
           scoreNum: response.data.data.scoreNum
         }
-    }
+      }
     }else{
       console.error('获取用户信息失败:', response.data.message)
       return
@@ -391,12 +402,34 @@ const handleAcceptDemand = async (demand) => {
   }
 }
 
+// 启动轮询
+const startPolling = () => {
+  if (pollingInterval) clearInterval(pollingInterval)
+  pollingInterval = setInterval(() => {
+    if (authStore.isLoggedIn) {
+      fetchTotalUnreadCount()
+    }
+  }, 5000) // 每5秒轮询一次
+}
+
+// 停止轮询
+const stopPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
+  }
+}
+
 // 路由跳转
 const goToPublish = () => router.push('/create/demand')
 const goToProfile = () => { showDropdown.value = false; router.push('/my/profile') }
-const goToMessages = () => { showDropdown.value = false; router.push('/my/conversations') }
+const goToMessages = () => { 
+  showDropdown.value = false
+  // 清除未读计数（可选，进入消息页面后清零）
+  totalUnreadCount.value = 0
+  router.push('/my/conversations') 
+}
 const goToOrderDetail = (orderId) => router.push(`/order/${orderId}`)
-const goToChat = (order) => router.push(`/messages?orderId=${order.id}`)
 
 // 辅助方法
 const formatRelativeTime = (isoString) => {
@@ -439,6 +472,8 @@ const handleLogout = () => {
   showNotification('退出登录', `再见，${username}！`)
   authStore.logout()
   showDropdown.value = false
+  totalUnreadCount.value = 0
+  stopPolling()
   router.push('/')
 }
 
@@ -455,7 +490,14 @@ onMounted(() => {
   if (authStore.isLoggedIn) {
     fetchActiveOrders()
     fetchUserCredit()
+    fetchTotalUnreadCount()
+    startPolling()
   }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeDropdown)
+  stopPolling()
 })
 
 // 监听登录状态变化
@@ -463,9 +505,13 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   if (isLoggedIn) {
     fetchActiveOrders()
     fetchUserCredit()
+    fetchTotalUnreadCount()
+    startPolling()
   } else {
     activeOrders.value = []
     userCredit.value = { averageScore: null, scoreNum: 0 }
+    totalUnreadCount.value = 0
+    stopPolling()
   }
 })
 </script>
@@ -499,6 +545,7 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   font-weight: 600;
   color: #ffff;
   margin: 0;
+  cursor: pointer;
 }
 
 .header-search {
@@ -518,12 +565,6 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
 
 .search-box:focus-within {
   background: rgba(255, 255, 255, 0.25);
-}
-
-.search-icon {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 16px;
-  margin-right: 8px;
 }
 
 .search-box input {
@@ -562,6 +603,13 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   font-weight: 500;
 }
 
+/* 头像包装器 - 用于红点定位 */
+.avatar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .avatar {
   width: 40px;
   height: 40px;
@@ -575,6 +623,21 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
 .avatar:hover {
   transform: scale(0.98);
 }
+
+/* 头像小红点 */
+.avatar-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background-color: #ff4444;
+  border-radius: 50%;
+  border: 2px solid #62055f;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+
 
 .header-btn {
   background: transparent;
@@ -591,7 +654,7 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  min-width: 160px;
+  min-width: 180px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
@@ -610,10 +673,30 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   font-size: 14px;
   color: #333;
   transition: background 0.2s;
+  position: relative;
 }
 
 .dropdown-item:hover {
   background: #f5f5f5;
+}
+
+/* 消息菜单项 - 用于显示数字角标 */
+.message-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.message-badge {
+  background-color: #dc1010;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px;
+  border-radius: 20px;
+  min-width: 20px;
+  text-align: center;
+  margin-left: 12px;
 }
 
 .dropdown-divider {
@@ -789,6 +872,7 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   padding: 20px;
   border: 1px solid #e8ecf0;
   transition: box-shadow 0.2s;
+  cursor: pointer;
 }
 
 .demand-card:hover {
@@ -911,6 +995,7 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
 .order-item {
   padding: 12px 0;
   border-bottom: 1px solid #f0f2f5;
+  cursor: pointer;
 }
 
 .order-item:last-child {
@@ -939,31 +1024,6 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
 
 .order-status.accepted { background: #e8f4fd; color: #3498db; }
 .order-status.progress { background: #fee8e0; color: #e67e22; }
-
-.order-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.order-btn {
-  padding: 5px 12px;
-  background: transparent;
-  border: 1px solid #ddd;
-  border-radius: 20px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.order-btn.chat {
-  border-color: #62055f;
-  color: #62055f;
-}
-
-.order-btn.chat:hover {
-  background: #62055f;
-  color: white;
-}
 
 .empty-orders {
   text-align: center;
@@ -1004,22 +1064,6 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   font-size: 13px;
   padding: 6px 0;
   color: #4a5a78;
-}
-
-.credit-detail-btn {
-  width: 100%;
-  padding: 10px;
-  background: transparent;
-  border: 1px solid #ddd;
-  border-radius: 30px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.2s;
-}
-
-.credit-detail-btn:hover {
-  border-color: #62055f;
-  color: #62055f;
 }
 
 /* 加载和空状态 */

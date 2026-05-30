@@ -400,10 +400,6 @@ const closeReviewModal = () => {
 }
 
 const submitReview = async () => {
-  if (!reviewForm.content.trim()) {
-    showNotification('提示', '请填写评价内容')
-    return
-  }
   
   reviewSubmitting.value = true
   try {

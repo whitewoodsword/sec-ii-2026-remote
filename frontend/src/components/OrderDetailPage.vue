@@ -290,9 +290,28 @@ const cancelOrder = async () => {
 }
 
 // 联系对方
-const handleContact = () => {
-  // TODO: 实现联系功能（如跳转聊天页面或显示联系方式）
-  showNotification('联系功能', '联系功能开发中，敬请期待！')
+const handleContact = async () => {
+  try{
+    const response = await fetch(`http://localhost:8080/conversations?user1Id=${authStore.user.id}&user2Id=${publisher.value.id}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+
+    if(response.status === 200){
+      // const result = await response.json()
+      router.push(`/my/conversations`)
+    } else {
+       showNotification('操作失败', error.message || '网络错误，无法创建会话')
+    }
+  } catch (error) {
+    console.error('联系对方失败:', error)
+    showNotification('操作失败', error.message || '网络错误，请重试')
+  }
+  
+
+
 }
 
 // 返回上一页

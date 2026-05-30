@@ -1,12 +1,15 @@
 package com.example.backend.controller;
 
+import com.example.backend.dto.ApiResponse;
 import com.example.backend.entity.User;
 import com.example.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List; 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -17,80 +20,84 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/register")
-    public Map<String, Object> register(@RequestBody Map<String, String> params) {
-        User user = userService.register(
-            params.get("phone"),
-            params.get("password")
-        );
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("message", "注册成功");
-        result.put("userId", user.getId());
-        return result;
+    public ResponseEntity<ApiResponse<Map<String, Object>>> register(@RequestBody Map<String, String> params) {
+        try {
+            User user = userService.register(
+                params.get("phone"),
+                params.get("password")
+            );
+            Map<String, Object> data = new HashMap<>();
+            data.put("userId", user.getId());
+            return ResponseEntity.ok(ApiResponse.success(data));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(400, e.getMessage()));
+        }
     }
 
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody Map<String, String> params) {
-        User user = userService.login(params.get("phone"), params.get("password"));
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("message", "登录成功");
-        result.put("token", user.getToken());
-        result.put("user", user);
-        return result;
+    public ResponseEntity<ApiResponse<Map<String, Object>>> login(@RequestBody Map<String, String> params) {
+        try {
+            User user = userService.login(params.get("phone"), params.get("password"));
+            Map<String, Object> data = new HashMap<>();
+            data.put("token", user.getToken());
+            data.put("user", user);
+            return ResponseEntity.ok(ApiResponse.success(data));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error(401, e.getMessage()));
+        }
     }
 
     @GetMapping("/{id}")
-    public User getUser(@PathVariable Long id) {
-        return userService.getUserById(id);
+    public ResponseEntity<ApiResponse<User>> getUser(@PathVariable Long id) {
+        try {
+            User user = userService.getUserById(id);
+            return ResponseEntity.ok(ApiResponse.success(user));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(404, e.getMessage()));
+        }
     }
 
     @GetMapping("/list")
-    public Page<User> listUsers(@RequestParam(defaultValue = "0") int page,
-                                @RequestParam(defaultValue = "10") int size) {
-        return userService.getAllUsers(page, size);
+    public ResponseEntity<ApiResponse<Page<User>>> listUsers(@RequestParam(defaultValue = "0") int page,
+                                                             @RequestParam(defaultValue = "10") int size) {
+        Page<User> users = userService.getAllUsers(page, size);
+        return ResponseEntity.ok(ApiResponse.success(users));
     }
 
     @GetMapping("/ranking")
-    public List<User> getRanking(@RequestParam(defaultValue = "10") int limit) {
-        return userService.getScoreRanking(limit);
+    public ResponseEntity<ApiResponse<List<User>>> getRanking(@RequestParam(defaultValue = "10") int limit) {
+        List<User> ranking = userService.getScoreRanking(limit);
+        return ResponseEntity.ok(ApiResponse.success(ranking));
     }
 
     @GetMapping("/stats")
-    public UserService.PlatformStatistics getStats() {
-        return userService.getPlatformStatistics();
+    public ResponseEntity<ApiResponse<UserService.PlatformStatistics>> getStats() {
+        UserService.PlatformStatistics stats = userService.getPlatformStatistics();
+        return ResponseEntity.ok(ApiResponse.success(stats));
     }
+
     @PutMapping("/name")
-    public Map<String, Object> editName(@RequestBody Map<String, String> params) {
-        Map<String, Object> result = new HashMap<>();
+    public ResponseEntity<ApiResponse<Void>> editName(@RequestBody Map<String, String> params) {
         try {
-            User user = userService.updateUser(Long.parseLong(params.get("id")), params.get("name"), params.get("avatarPath"));
-            result.put("success", true);
-            result.put("message", "昵称修改成功");
+            userService.updateUser(Long.parseLong(params.get("id")), params.get("name"), params.get("avatarPath"));
+            return ResponseEntity.ok(ApiResponse.success(null));
         } catch (Exception e) {
-            
-            result.put("success", false);
-            result.put("message", "昵称修改失败");
-            result.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(400, e.getMessage()));
         }
-        return result;
     }
 
     @PutMapping("/avatarPath")
-    public Map<String, Object> editAvatarPath(@RequestBody Map<String, String> params) {
-        Map<String, Object> result = new HashMap<>();
+    public ResponseEntity<ApiResponse<Void>> editAvatarPath(@RequestBody Map<String, String> params) {
         try {
-            User user = userService.updateUser(Long.parseLong(params.get("id")), params.get("name"), params.get("avatarPath"));
-            result.put("success", true);
-            result.put("message", "用户头像修改成功");
+            userService.updateUser(Long.parseLong(params.get("id")), params.get("name"), params.get("avatarPath"));
+            return ResponseEntity.ok(ApiResponse.success(null));
         } catch (Exception e) {
-            
-            result.put("success", false);
-            result.put("message", "用户头像修改失败");
-            result.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(400, e.getMessage()));
         }
-        return result;
     }
-
-    
 }

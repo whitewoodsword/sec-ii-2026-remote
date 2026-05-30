@@ -32,6 +32,9 @@ public class Conversation {
         this.user2Id = user2Id;
         this.createdAt = LocalDateTime.now();
     }
+
+    public Conversation() {
+    }
     public Long getId() {
         return id;
     }

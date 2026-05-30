@@ -52,31 +52,37 @@ const getVerificationCode = () => {
 }
 
 // 处理注册
-const handleRegister = () => {
+const handleRegister = async () => {
   // 你的注册逻辑
   if(formData.value.password !== formData.value.confirmPassword){
-    alert('密码和确认密码不一致！')
+    showNotification('注册失败', '密码和确认密码不一致！')
     formData.value.password = ''
     formData.value.confirmPassword = ''
     return
   }
-  fetch('http://localhost:8080/users/register', {
-    method: 'POST',
-    body: JSON.stringify({
-      phone: formData.value.phone,
-      password: formData.value.password
-    }),
-    headers: {
-      'Content-type': 'application/json; charset=UTF-8'
+
+  try{
+    const response = await fetch('http://localhost:8080/users/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        phone: formData.value.phone,
+        password: formData.value.password
+      }),
+      headers: {
+        'Content-type': 'application/json; charset=UTF-8'
+      }
+    })
+    const result = await response.json()
+    
+    if (result.code === 200) {
+      showNotification('注册成功', '恭喜你，注册成功！')
+    } else {
+      showNotification('注册失败', result.message || '注册失败，请重试')
     }
-  }).then(response => response.json())
-  .then(data => {
-    console.log(data)
-  })
-  .catch(error => {
-    alert('注册失败'+error)
-  })
-  showNotification('通知', '亲爱的用户，您已经注册成功！')
+  }catch (error) {
+    showNotification('注册失败', error.message || '注册失败，请重试')
+  }
+  
 }
 
 // 跳转到登录页面

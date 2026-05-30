@@ -163,6 +163,20 @@ public class DemandService {
         return false;
     }
 
+    // 重置需求状态()（管理员操作 + 普通用户回退操作）
+    @Transactional
+    public boolean resetStatus(Long id, String newStatus) {
+        Optional<Demand> demandOpt = demandRepository.findById(id);
+        if (demandOpt.isPresent()) {
+            Demand demand = demandOpt.get();
+            int updated = demandRepository.updateStatus(id, newStatus, LocalDateTime.now());
+            return updated > 0;
+        }
+        return false;
+    }
+
+
+
     // 发布需求
     @Transactional
     public Demand publishDemand(Demand demand) {

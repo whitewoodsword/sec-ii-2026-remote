@@ -90,7 +90,7 @@ const fetchDemand = async () => {
       }
     })
     const result = await response.json()
-    
+    console.log('获取需求成功:', result)
     if (result.code === 200) {
       demand.value = result.data
     } else {
@@ -161,7 +161,7 @@ const handleAccept = async () => {
     })
     const result = await response.json()
     if (result.code === 200) {
-      showNotification('接取成功', '接取成功，请及时与该用户联完成订单系并')
+      showNotification('接取成功', '接取成功，请及时与该用户联系并完成订单')
     } else {
       console.log('接取失败:', result)
       showNotification('接取失败', (result.message || '请稍后重试'))

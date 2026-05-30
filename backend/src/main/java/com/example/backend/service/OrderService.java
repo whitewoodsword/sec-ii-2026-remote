@@ -216,7 +216,7 @@ public class OrderService {
         }
         
         // 恢复需求状态为PENDING
-        demandService.updateDemandStatus(order.getDemandId(), "PENDING");
+        demandService.resetStatus(order.getDemandId(), "PENDING");
         // 清除需求上的订单ID
         demandService.updateOrderId(order.getDemandId(), null);
         

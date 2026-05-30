@@ -10,9 +10,10 @@ import EditDemandPage from '../components/EditDemandPage.vue';
 import DemandDetailPage from '../components/DemandDetailPage.vue';
 import MyDemandsPage from '../components/MyDemandsPage.vue';
 import OrderWorkbenchPage from '../components/OrderWorkbenchPage.vue';
-import MessagesPage from '../components/MessagesPage.vue';
 import ReviewPage from '../views/ReviewPage.vue'
 import OrderDetailPage from '../components/OrderDetailPage.vue'
+import MyOrdersPage from '../components/MyOrdersPage.vue'
+import MyConversationsPage from '../components/MyConversationsPage.vue'
 
 // 定义路由（路径 -> 组件的映射）
 const routes = [
@@ -77,15 +78,20 @@ const routes = [
         name: 'orderDetail',
         component: OrderDetailPage
     },
-    {   
-        path: '/messages',
-        name: 'messages',
-        component: MessagesPage
-    },
     {
         path: '/review',
         name: 'reviewPage',
         component: ReviewPage
+    },
+    {
+        path: '/my/orders',
+        name: 'myOrders',
+        component: MyOrdersPage
+    },
+    {
+        path: '/my/conversations',
+        name: 'myConversations',
+        component: MyConversationsPage
     },
     {
         // 404 路由 - 匹配所有未定义的路径
@@ -97,11 +103,20 @@ const routes = [
 ]
 
 // 创建路由实例
-const router = createRouter({
+/*const router = createRouter({
     // 使用 history 模式（需要服务器配置）
     // 如果想用 hash 模式，改用 createWebHashHistory()
-    history: createWebHistory(import.meta.env.BASE_URL),
+   
     routes
-})
+})*/
+
+const router = createRouter({
+    history: createWebHistory(import.meta.env.BASE_URL),
+    routes,
+    scrollBehavior() {
+        // 每次路由切换都回到顶部
+        return { top: 0, behavior: 'auto' };
+    }
+});
 
 export default router

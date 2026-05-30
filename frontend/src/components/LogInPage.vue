@@ -44,26 +44,28 @@ const handleAlertConfirm = () => {
 }
 
 // 处理登录
-const handleLogin = () => {
+const handleLogin =  async () => {
   // 你的登录逻辑
-  fetch('http://localhost:8080/users/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(formData.value)
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log(data)
-    authStore.setAuth({user: data.user, token: data.token})
-    showNotification('登录成功', '欢迎回来，'+data.user.name+'！祝你使用愉快。', true)
-  })
-  .catch(error => {
-    alert('登录失败'+error)
-})
+  try{
+    const response = await fetch('http://localhost:8080/users/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData.value)
+    })
+    const result = await response.json()
+    console.log(result)
+    if (result.code === 200) {
+      authStore.setAuth(result.data)
+      showNotification('登录成功', '欢迎回来，' + result.data.username) 
+    }else {
+      showNotification('登录失败', result.message || '请检查你的手机号和密码')
+    }
 
-  //alert('登录信息:'+formData.value.phone+formData.value.password)
+  } catch (error) {
+    showNotification('登录失败', error.message || '请检查你的手机号和密码')
+  }
 }
 
 // 跳转到注册页面

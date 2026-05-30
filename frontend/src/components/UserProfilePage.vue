@@ -194,7 +194,7 @@ const displayAvatar = computed(() => {
   if (authStore.user?.avatarPath) {
     return 'http://localhost:8080'+authStore.user.avatarPath
   }
-  return 'https://picsum.photos/120/120?random=1'
+  return 'http://localhost:8080/api/files/default-avatar.png'
 })
 
 
@@ -216,17 +216,25 @@ const saveName = async () => {
   }
   try {
     // TODO: 调用后端API更新用户昵称
-    const response = await axios.put('http://localhost:8080/users/name', {
-      id: authStore.user?.id,
-      name: editableName.value,
-      avatarPath: authStore.user?.avatarPath
-    },{headers:{ 'Content-Type': 'application/json'}})
+    const response = await fetch('http://localhost:8080/users/name', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        id: authStore.user?.id,
+        name: editableName.value,
+        avatarPath: authStore.user?.avatarPath
+      })
+    })
+    const result = await response.json()
     // 模拟更新store中的用户信息
-    if(response.data.success && authStore.user){
+    console.log(result)
+    if(result.code === 200 && authStore.user){
       authStore.updateUserName(editableName.value)
       showNotification('更新成功', '您的用户昵称已更新！')
     }else{
-      console.log(response)
+      showNotification('更新失败', '请稍后重试')
     }
     
   } catch (error) {
@@ -332,12 +340,12 @@ const handleAdmin = () => {
 
 // 功能按钮：我的订单
 const handleMyOrders = () => {
-  showNotification('功能开发中', '我的订单功能正在开发中，敬请期待！')
+  router.push('/my/orders')
 }
 
 // 功能按钮：我的消息（内容区的消息）
 const handleMessagesCenter = () => {
-  router.push('/messages')
+  router.push('/my/conversations')
 }
 
 // 功能按钮：我的需求

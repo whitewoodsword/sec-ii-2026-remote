@@ -14,7 +14,7 @@ watch(() => route.path, (newPath) => {
     <router-view />
 
     <footer class="app-footer">
-      <p>校园互助服务平台 CampusHub</p>
+      <p>校园互助服务平台 CampusHub®</p>
       <p>Group 67 for SEII 2026</p>
     </footer>
   </div>
@@ -23,6 +23,22 @@ watch(() => route.path, (newPath) => {
 <style scoped>
 #app {
   min-height: 100vh;
+}
+
+/* 全局禁止复制 */
+* {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+   margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .app-footer {

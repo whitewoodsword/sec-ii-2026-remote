@@ -506,7 +506,7 @@ const currentUserAvatar = computed(() => {
   if (authStore.user?.avatarPath) {
     return 'http://localhost:8080' + authStore.user.avatarPath
   }
-  return 'https://picsum.photos/40/40?random=1'
+  return 'http://localhost:8080/api/files/default-avatar.png'
 })
 
 const openRequestCount = computed(() => requests.value.filter((request) => request.status === 'OPEN').length)

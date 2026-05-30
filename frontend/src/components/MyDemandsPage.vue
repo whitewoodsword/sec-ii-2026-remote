@@ -54,7 +54,7 @@
 
             <!-- 需求列表 -->
             <div v-else class="demand-list">
-                <div v-for="demand in demands" :key="demand.id" class="demand-card">
+                <div v-for="demand in demands" :key="demand.id" class="demand-card" @click="viewDetail(demand.id)">
                     <div v-if="firstImageUrl(demand.pictureUrls)" class="card-image" @click="viewDetail(demand.id)">
                         <img :src="getFullImageUrl(firstImageUrl(demand.pictureUrls))" :alt="demand.title" />
                     </div>
@@ -73,19 +73,11 @@
                             <span>创建时间: {{ formatDate(demand.createdAt) }}</span>
                         </div>
                     </div>
-
-                    <div class="card-actions">
-                        <button class="action-btn view-btn" @click="viewDetail(demand.demand.id)">详情</button>
-                        <button v-if="demand.status === 'PENDING' || demand.status === 'REJECTED'"
-                            class="action-btn edit-btn" @click="editDemand(demand.id)">编辑</button>
-                        <button v-if="demand.status === 'PENDING'" class="action-btn cancel-action-btn"
-                            @click="cancelDemand(demand.id)">取消</button>
-                    </div>
                 </div>
             </div>
 
             <!-- 分页 -->
-            <div v-if="totalPages > 1" class="pagination">
+            <div v-if="totalPages > 1" class="pagination-btn">
                 <button class="page-btn" :disabled="currentPage === 0" @click="changePage(currentPage - 1)">上一页</button>
                 <span class="page-info">第 {{ currentPage + 1 }} / {{ totalPages }} 页</span>
                 <button class="page-btn" :disabled="currentPage >= totalPages - 1"
@@ -466,6 +458,12 @@ onMounted(fetchDemands)
     font-weight: 500;
 }
 
+.cue_text {
+    margin-top: 30px;
+    font-size: 10px;
+    color: #999;
+}
+
 .demand-desc {
     font-size: 13px;
     color: #666;
@@ -530,7 +528,7 @@ onMounted(fetchDemands)
     background: #ffebee;
 }
 
-.pagination {
+.pagination-btn {
     display: flex;
     justify-content: center;
     align-items: center;

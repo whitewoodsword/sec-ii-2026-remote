@@ -20,7 +20,7 @@ const formData = ref({
 
 
 // 分类选项
-const categories = ['生活服务', '专业技术', '教育培训', '设计创意']
+const categories = ['快递代取', '学习辅导', '二手交易', '活动组队', '其他']
 
 // 加载状态
 const loading = ref(false)

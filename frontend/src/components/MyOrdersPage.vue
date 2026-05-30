@@ -80,13 +80,7 @@
                   <p class="order-partner">{{ getPartnerLabel(order) }}：{{ getPartnerName(order) }}</p>
                 </div>
                 <div class="order-actions" @click.stop>
-                  <button 
-                    v-if="order.status === 'COMPLETED' && !order.commentId && canReview(order)"
-                    class="action-btn review-btn"
-                    @click="openReviewModal(order)"
-                  >
-                    去评价
-                  </button>
+      
                   <button 
                     v-if="order.status === 'IN_PROGRESS'"
                     class="action-btn detail-btn"
@@ -320,19 +314,46 @@ const searchOrders = async () => {
   }
 }
 
+// 替换原有的 fetchReviewOrders 函数
 const fetchReviewOrders = async () => {
   reviewLoading.value = true
   try {
-    const params = new URLSearchParams({ page: reviewPage.value, size: 5, status: 'COMPLETED', sortBy: 'completedAt', direction: 'desc' })
+    // 获取所有已完成的订单（不分页获取更多，或者分页但需要处理）
+    const params = new URLSearchParams({ 
+      page: 0, 
+      size: 100,  // 获取足够多的已完成订单
+      status: 'COMPLETED', 
+      sortBy: 'completedAt', 
+      direction: 'desc' 
+    })
     const response = await fetch(`http://localhost:8080/orders/user/${authStore.user.id}?${params.toString()}`, {
       headers: { 'Authorization': `Bearer ${authStore.token}` }
     })
     const result = await response.json()
     
     if (result.code === 200 && result.data) {
-      const allOrders = result.data.content || []
-      reviewOrders.value = allOrders.filter(order => !order.commentId)
-      reviewOrdersTotal.value = reviewOrders.value.length
+      const allCompletedOrders = result.data.content || []
+      
+      // 筛选出当前用户尚未评价的订单
+      const unreviewedOrders = []
+      for (const order of allCompletedOrders) {
+        // 检查当前用户是否已经评价过这个订单
+        const reviewCheckResponse = await fetch(
+          `http://localhost:8080/reviews/user-order?orderId=${order.id}&userId=${authStore.user.id}`,
+          {
+            headers: { 'Authorization': `Bearer ${authStore.token}` }
+          }
+        )
+        const reviewCheckResult = await reviewCheckResponse.json()
+        
+        // 如果返回404表示未评价，200表示已评价
+        if (reviewCheckResult.code === 404) {
+          unreviewedOrders.push(order)
+        }
+      }
+      
+      reviewOrders.value = unreviewedOrders
+      reviewOrdersTotal.value = unreviewedOrders.length
       reviewTotalPages.value = Math.ceil(reviewOrdersTotal.value / 5)
     }
   } catch (error) {
@@ -386,33 +407,39 @@ const submitReview = async () => {
   
   reviewSubmitting.value = true
   try {
-    const response = await fetch('http://localhost:8080/comments/create', {
+    const order = currentOrderForReview.value
+    // 确定被评价者ID（评价对方，不是自己）
+    const reviewedId = order.publisherId === authStore.user?.id 
+      ? order.acceptorId   // 发布者评价接单者
+      : order.publisherId  // 接单者评价发布者
+    
+    // 调用正确的 API：POST /reviews/create 使用 Query 参数
+    const params = new URLSearchParams({
+      orderId: order.id,
+      userId: authStore.user.id,
+      score: reviewForm.rating,
+      content: reviewForm.content
+    })
+    
+    const response = await fetch(`http://localhost:8080/reviews/create?${params.toString()}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-      body: JSON.stringify({
-        targetType: 'ORDER',
-        targetId: currentOrderForReview.value.id,
-        rating: reviewForm.rating,
-        content: reviewForm.content,
-        userId: authStore.user.id
-      })
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
     })
     const result = await response.json()
     
     if (result.code === 200 || result.code === 201) {
-      const commentId = result.data?.id
-      await fetch(`http://localhost:8080/orders/${currentOrderForReview.value.id}/complete?userId=${authStore.user.id}&commentId=${commentId}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${authStore.token}` }
-      })
       showNotification('评价成功', '感谢您的评价！')
       closeReviewModal()
-      searchOrders()
-      fetchReviewOrders()
-    } else throw new Error(result.message || '评价失败')
+      await searchOrders()
+      await fetchReviewOrders()
+    } else {
+      throw new Error(result.message || '评价失败')
+    }
   } catch (error) {
     console.error('评价失败:', error)
-    showNotification('评价失败', error.message)
+    showNotification('评价失败', error.message || '网络错误，请重试')
   } finally {
     reviewSubmitting.value = false
   }

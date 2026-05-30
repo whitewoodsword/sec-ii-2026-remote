@@ -34,6 +34,7 @@ const showNotification = (title, content, isHtml = false) => {
 
 const handleAlertConfirm = () => {
   //donothing
+  router.go(0) // 刷新当前页面以获取最新状态
 }
 
 // 解析图片URL
@@ -144,10 +145,36 @@ const handleEdit = () => {
 }
 
 // 联系TA
-const handleContact = () => {
-  // TODO: 实现联系功能
-  showNotification('功能开发中', '联系功能正在开发中，敬请期待！')
+// 联系对方
+const handleContact = async () => {
+  try {
+    const otherUserId = demand.value.publisherId;
+    
+    const response = await fetch(`http://localhost:8080/conversations?user1Id=${authStore.user.id}&user2Id=${otherUserId}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+
+    if (response.status === 200 || response.status === 201) {
+      const result = await response.json()
+      
+      if (result.code === 200 && result.data) {
+        // 获取到对话信息，跳转到会话详情页
+        const conversationId = result.data.id
+        router.push(`/my/conversations`)
+      }
+    } else {
+      const errorResult = await response.json()
+      showNotification('操作失败', errorResult.message || '网络错误，无法创建会话')
+    }
+  } catch (error) {
+    console.error('联系对方失败:', error)
+    showNotification('操作失败', error.message || '网络错误，请重试')
+  }
 }
+
 
 // 接取订单
 const handleAccept = async () => {
@@ -297,11 +324,9 @@ onMounted(() => {
             </button>
           </template>
 
-          <!-- 非发布者操作按钮（已登录且可接取） -->
+          <!-- 非发布者操作按钮（已登录且可接取） -->           
           <template v-else-if="canAccept">
-            <button class="action-btn contact-btn" @click="handleContact">
-              💬 联系TA
-            </button>
+            
             <button class="action-btn accept-btn" @click="handleAccept">
               📋 接取订单
             </button>
@@ -313,6 +338,10 @@ onMounted(() => {
             <button class="login-link" @click="router.push('/login')">登录</button>
             <span>后联系发布者或接取订单</span>
           </div>
+
+          <button class="action-btn contact-btn" @click="handleContact">
+              💬 联系TA
+            </button>
         </div>
       </div>
 

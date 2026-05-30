@@ -268,9 +268,13 @@ const fetchConversations = async (showLoading = false) => {
 const selectConversation = async (conv) => {
   const conversationId = conv.conversationId || conv.id
   
+  // 先清空当前消息
+  messages.value = []
+  shouldAutoScroll.value = true
+  
   activeConversation.value = conv
   activeConversationId.value = conversationId
-  shouldAutoScroll.value = true
+  
   await loadMessages(conversationId, true)
   await markMessagesAsRead(conversationId)
   scrollToBottom()
@@ -335,45 +339,28 @@ const loadMessages = async (conversationId, showLoading = false) => {
         newMessages = await loadMessagesFromAPI(conversationId)
       }
       
-      const hasChanges = updateMessagesIncrementally(newMessages)
+      // 直接替换消息列表，而不是增量更新
+      messages.value = newMessages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
       
-      if (hasChanges && !shouldAutoScroll.value && savedScrollPosition > 0) {
+      if (!shouldAutoScroll.value && savedScrollPosition > 0) {
         nextTick(() => {
           if (messagesContainer.value) {
             messagesContainer.value.scrollTop = savedScrollPosition
           }
         })
-      } else if (hasChanges && shouldAutoScroll.value) {
-        scrollToBottom()
       }
     } else {
+      // 如果获取失败或没有数据，清空消息列表
+      messages.value = []
       const newMessages = await loadMessagesFromAPI(conversationId)
-      const hasChanges = updateMessagesIncrementally(newMessages)
-      
-      if (hasChanges && !shouldAutoScroll.value && savedScrollPosition > 0) {
-        nextTick(() => {
-          if (messagesContainer.value) {
-            messagesContainer.value.scrollTop = savedScrollPosition
-          }
-        })
-      } else if (hasChanges && shouldAutoScroll.value) {
-        scrollToBottom()
+      if (newMessages && newMessages.length > 0) {
+        messages.value = newMessages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
       }
     }
   } catch (err) {
     console.error('加载消息失败:', err)
-    const newMessages = await loadMessagesFromAPI(conversationId)
-    const hasChanges = updateMessagesIncrementally(newMessages)
-    
-    if (hasChanges && !shouldAutoScroll.value && savedScrollPosition > 0) {
-      nextTick(() => {
-        if (messagesContainer.value) {
-          messagesContainer.value.scrollTop = savedScrollPosition
-        }
-      })
-    } else if (hasChanges && shouldAutoScroll.value) {
-      scrollToBottom()
-    }
+    // 出错时清空消息列表
+    messages.value = []
   } finally {
     if (showLoading) {
       loadingMessages.value = false
@@ -515,7 +502,7 @@ const handleVisibilityChange = () => {
           await loadMessages(activeConversationId.value, false)
           await markMessagesAsRead(activeConversationId.value)
           if (shouldAutoScroll.value) {
-            scrollToBottom()
+           // scrollToBottom()
           }
         }
       }, 5000)
@@ -555,7 +542,7 @@ onUnmounted(() => {
 
 watch(messages, () => {
   if (shouldAutoScroll.value) {
-    scrollToBottom()
+    //scrollToBottom()
   }
 }, { deep: false })
 

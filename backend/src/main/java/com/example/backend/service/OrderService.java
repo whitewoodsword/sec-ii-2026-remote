@@ -277,25 +277,47 @@ public class OrderService {
     }
 
     /**
-     * 多条件查询订单
+     * 获取用户所有相关订单，并可按状态过滤
+     */
+    public Page<Order> getAllUserOrdersWithStatus(Long userId, String status, Pageable pageable) {
+        if (status == null || status.isEmpty()) {
+            return getAllUserOrders(userId, pageable);
+        }
+        return orderRepository.findAllByUserIdAndStatus(userId, status, pageable);
+    }
+
+    /**
+     * 多条件查询订单（修复版）
+     * 支持按发布者或接单者单独查询，也支持按用户ID查询所有相关订单
      */
     public Page<Order> searchOrders(Long demandId, Long publisherId, Long acceptorId, 
-                                     String status, String keyword, Pageable pageable) {
+                                     Long userId, String status, String keyword, Pageable pageable) {
         Specification<Order> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             
             if (demandId != null) {
                 predicates.add(cb.equal(root.get("demandId"), demandId));
             }
-            if (publisherId != null) {
-                predicates.add(cb.equal(root.get("publisherId"), publisherId));
+            
+            // 处理用户相关的查询：如果提供了 userId，则查询发布者或接单者为该用户的订单
+            if (userId != null) {
+                Predicate publisherPredicate = cb.equal(root.get("publisherId"), userId);
+                Predicate acceptorPredicate = cb.equal(root.get("acceptorId"), userId);
+                predicates.add(cb.or(publisherPredicate, acceptorPredicate));
+            } else {
+                // 否则按单独指定的发布者或接单者查询
+                if (publisherId != null) {
+                    predicates.add(cb.equal(root.get("publisherId"), publisherId));
+                }
+                if (acceptorId != null) {
+                    predicates.add(cb.equal(root.get("acceptorId"), acceptorId));
+                }
             }
-            if (acceptorId != null) {
-                predicates.add(cb.equal(root.get("acceptorId"), acceptorId));
-            }
+            
             if (status != null && !status.isEmpty()) {
                 predicates.add(cb.equal(root.get("status"), status));
             }
+            
             if (keyword != null && !keyword.isEmpty()) {
                 Predicate noteLike = cb.like(root.get("latestRequesterNote"), "%" + keyword + "%");
                 predicates.add(noteLike);

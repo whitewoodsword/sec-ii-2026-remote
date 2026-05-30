@@ -158,24 +158,20 @@
         <aside class="right-sidebar">
           <!-- 进行中订单卡片 -->
           <div class="orders-card">
-            <h3 class="card-title">进行中的订单</h3>
+            <h3 class="card-title">待处理订单</h3>
             <div v-if="loadingOrders" class="loading-mini">
               <div class="loading-spinner small"></div>
             </div>
             <div v-else-if="activeOrders.length === 0" class="empty-orders">
-              <span>暂无进行中的订单</span>
+              <span>暂无待处理的订单</span>
             </div>
             <div v-else class="orders-list">
               <div v-for="order in activeOrders" :key="order.id" class="order-item">
-                <div class="order-info">
-                  <div class="order-title">{{ order.demandTitle || '订单' }}</div>
+                <div class="order-info" @click="goToOrderDetail(order.id)">
+                  <div class="order-title">{{ '订单 #' + order.id}}</div>
                   <div class="order-status" :class="getStatusClass(order.status)">
                     {{ getStatusText(order.status) }}
                   </div>
-                </div>
-                <div class="order-actions">
-                  <button class="order-btn" @click="goToOrderDetail(order.id)">查看</button>
-                  <button class="order-btn chat" @click="goToChat(order)">聊天</button>
                 </div>
               </div>
             </div>
@@ -279,14 +275,14 @@ const showNotification = (title, content) => {
 }
 
 // 获取需求列表
+// 获取需求列表
 const fetchDemands = async () => {
   loadingDemands.value = true
   try {
     const params = new URLSearchParams({
       page: currentPage.value,
       size: pageSize.value,
-      sortBy: getSortByField(),
-      direction: currentSort.value === 'time' ? 'desc' : 'asc'
+      status: 'PENDING'  // 只展示未接取的需求
     })
     if (selectedCategory.value) params.append('category', selectedCategory.value)
     if (searchKeyword.value) params.append('keyword', searchKeyword.value)
@@ -328,7 +324,7 @@ const fetchActiveOrders = async () => {
   try {
     // 获取用户作为发布者或接单者的进行中订单
     const response = await axios.get(`http://localhost:8080/orders/user/${authStore.user.id}`, {
-      params: { page: 0, size: 10, role: 'all', status: 'ACCEPTED,IN_PROGRESS' }
+      params: { page: 0, size: 10, role: 'all', status: 'IN_PROGRESS' }
     })
     if (response.data.code === 200 && response.data.data) {
       activeOrders.value = response.data.data.content || []
@@ -396,10 +392,10 @@ const handleAcceptDemand = async (demand) => {
 }
 
 // 路由跳转
-const goToPublish = () => router.push('/demands/publish')
+const goToPublish = () => router.push('/create/demand')
 const goToProfile = () => { showDropdown.value = false; router.push('/my/profile') }
 const goToMessages = () => { showDropdown.value = false; router.push('/my/conversations') }
-const goToOrderDetail = (orderId) => router.push(`/orders/${orderId}`)
+const goToOrderDetail = (orderId) => router.push(`/order/${orderId}`)
 const goToChat = (order) => router.push(`/messages?orderId=${order.id}`)
 
 // 辅助方法

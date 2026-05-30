@@ -35,6 +35,9 @@ const statusNote = ref('')
 const showCancelDialog = ref(false)
 const cancelReason = ref('')
 
+// 完成订单确认
+const showCompleteDialog = ref(false)
+
 // 通知框
 const showAlert = ref(false)
 const alertConfig = ref({
@@ -55,8 +58,7 @@ const statusMap = {
 
 // 可更新的状态列表（接单者视角）
 const availableStatuses = [
-  { value: 'IN_PROGRESS', label: '开始进行' },
-  { value: 'COMPLETED', label: '标记完成' }
+  { value: 'IN_PROGRESS', label: '开始进行' }
 ]
 
 // 计算当前用户角色
@@ -67,18 +69,23 @@ const userRole = computed(() => {
   return null
 })
 
-// 是否可以编辑截止时间（仅接单者且订单未完成/取消）
+// 是否可以编辑截止时间
 const canEditDeadline = computed(() => {
-  if (userRole.value !== 'acceptor') return false
+  if (userRole.value !== 'publisher') return false
   const status = order.value?.status
   return status === 'ACCEPTED' || status === 'IN_PROGRESS'
 })
 
-// 是否可以更新状态（仅接单者且订单未完成/取消）
-const canUpdateStatus = computed(() => {
+// 是否可以更新状态为进行中（仅接单者且订单为已接单状态）
+const canStartOrder = computed(() => {
   if (userRole.value !== 'acceptor') return false
-  const status = order.value?.status
-  return status === 'ACCEPTED' || status === 'IN_PROGRESS'
+  return order.value?.status === 'ACCEPTED'
+})
+
+// 是否可以完成订单（仅接单者且订单为进行中状态）
+const canCompleteOrder = computed(() => {
+  if (userRole.value !== 'publisher') return false
+  return order.value?.status === 'IN_PROGRESS'
 })
 
 // 是否可以取消订单（接单者或发布者，且订单未完成/取消）
@@ -187,7 +194,6 @@ const saveDeadline = async () => {
   updating.value = true
   
   try {
-    // 更新订单备注作为截止时间信息（可根据实际API调整）
     const note = `截止时间：${new Date(newDeadline.value).toLocaleString('zh-CN')}`
     const response = await fetch(`http://localhost:8080/orders/${orderId.value}/note?userId=${authStore.user.id}&note=${encodeURIComponent(note)}`, {
       method: 'PATCH',
@@ -220,17 +226,12 @@ const openStatusDialog = () => {
   showStatusDialog.value = true
 }
 
-// 更新订单状态
-const updateOrderStatus = async () => {
-  if (!selectedStatus.value) {
-    showNotification('提示', '请选择要更新的状态')
-    return
-  }
-  
+// 更新订单状态（开始进行）
+const updateOrderStatus = async () => {  
   updating.value = true
   
   try {
-    const response = await fetch(`http://localhost:8080/orders/${orderId.value}/status?userId=${authStore.user.id}&status=${selectedStatus.value}&note=${encodeURIComponent(statusNote.value || '')}`, {
+    const response = await fetch(`http://localhost:8080/orders/${orderId.value}/status?userId=${authStore.user.id}&status=IN_PROGRESS&note=${encodeURIComponent(statusNote.value || '')}`, {
       method: 'PATCH',
       headers: {
         'Authorization': `Bearer ${authStore.token}`
@@ -240,7 +241,7 @@ const updateOrderStatus = async () => {
     const result = await response.json()
     
     if (result.code === 200) {
-      showNotification('成功', `订单状态已更新为「${availableStatuses.find(s => s.value === selectedStatus.value)?.label || selectedStatus.value}」`)
+      showNotification('成功', `订单状态已更新为「进行中」`)
       showStatusDialog.value = false
       await fetchOrderDetail()
     } else {
@@ -249,6 +250,51 @@ const updateOrderStatus = async () => {
   } catch (error) {
     console.error('更新订单状态失败:', error)
     showNotification('更新失败', error.message || '网络错误，请重试')
+  } finally {
+    updating.value = false
+  }
+}
+
+// 确认完成订单
+const completeOrder = async () => {
+  updating.value = true
+  
+  try {
+    // 1. 更新订单状态为 COMPLETED
+    const orderResponse = await fetch(`http://localhost:8080/orders/${orderId.value}/status?userId=${authStore.user.id}&status=COMPLETED&note=订单已完成`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    
+    const orderResult = await orderResponse.json()
+    
+    if (orderResult.code !== 200) {
+      throw new Error(orderResult.message || '更新订单状态失败')
+    }
+    
+    // 2. 更新关联需求状态为 COMPLETED
+    const demandResponse = await fetch(`http://localhost:8080/demands/${order.value.demandId}/status?status=COMPLETED`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    
+    const demandResult = await demandResponse.json()
+    
+    if (demandResult.code !== 200) {
+      console.warn('更新需求状态失败:', demandResult.message)
+      // 即使需求更新失败，订单已完成，仍提示成功
+    }
+    
+    showNotification('成功', '订单已完成，相关需求状态已更新')
+    showCompleteDialog.value = false
+    await fetchOrderDetail()
+  } catch (error) {
+    console.error('完成订单失败:', error)
+    showNotification('操作失败', error.message || '网络错误，请重试')
   } finally {
     updating.value = false
   }
@@ -292,7 +338,7 @@ const cancelOrder = async () => {
 // 联系对方
 const handleContact = async () => {
   try{
-    const response = await fetch(`http://localhost:8080/conversations?user1Id=${authStore.user.id}&user2Id=${publisher.value.id}`, {
+    const response = await fetch(`http://localhost:8080/conversations?user1Id=${authStore.user.id}&user2Id=${userRole.value === 'publisher' ? acceptor.value.id : publisher.value.id}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${authStore.token}`
@@ -300,18 +346,14 @@ const handleContact = async () => {
     })
 
     if(response.status === 200){
-      // const result = await response.json()
       router.push(`/my/conversations`)
     } else {
-       showNotification('操作失败', error.message || '网络错误，无法创建会话')
+      showNotification('操作失败', '网络错误，无法创建会话')
     }
   } catch (error) {
     console.error('联系对方失败:', error)
     showNotification('操作失败', error.message || '网络错误，请重试')
   }
-  
-
-
 }
 
 // 返回上一页
@@ -447,6 +489,44 @@ onMounted(() => {
           <h3 class="section-title">订单操作</h3>
           
           <!-- 截止时间编辑 -->
+          
+
+          <!-- 开始进行按钮 -->
+          <div class="action-card" v-if="canStartOrder">
+            <div class="action-header">
+              <span class="action-icon">▶️</span>
+              <span class="action-title">开始服务</span>
+            </div>
+            <div class="action-content">
+              <p class="action-hint">确认开始后，订单状态将变更为「进行中」</p>
+              <button class="action-btn primary-btn" @click="openStatusDialog" :disabled="updating">
+                开始服务
+              </button>
+            </div>
+          </div>
+
+          <!-- 确认完成按钮 -->
+          
+
+          <!-- 联系按钮 -->
+          <div class="action-card">
+            <div class="action-header">
+              <span class="action-icon">💬</span>
+              <span class="action-title">联系需求发布者</span>
+            </div>
+            <div class="action-content">
+              <p class="action-hint">如有问题，可通过平台联系需求发布者</p>
+              <button class="action-btn primary-btn" @click="handleContact">
+                联系 {{ publisher?.name || '需求发布者' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 发布者专属操作区域 -->
+        <div v-if="userRole === 'publisher'" class="action-section">
+          <h3 class="section-title">订单操作</h3>
+          
           <div class="action-card" v-if="canEditDeadline">
             <div class="action-header">
               <span class="action-icon">⏰</span>
@@ -474,39 +554,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- 状态更新 -->
-          <div class="action-card" v-if="canUpdateStatus">
-            <div class="action-header">
-              <span class="action-icon">🔄</span>
-              <span class="action-title">更新状态</span>
-            </div>
-            <div class="action-content">
-              <p class="action-hint">当前状态：{{ getStatusStyle(order.status).label }}</p>
-              <button class="action-btn primary-btn" @click="openStatusDialog" :disabled="updating">
-                更新订单状态
-              </button>
-            </div>
-          </div>
-
-          <!-- 联系按钮 -->
-          <div class="action-card">
-            <div class="action-header">
-              <span class="action-icon">💬</span>
-              <span class="action-title">联系发布者</span>
-            </div>
-            <div class="action-content">
-              <p class="action-hint">如有问题，可通过平台联系发布者</p>
-              <button class="action-btn primary-btn" @click="handleContact">
-                联系 {{ publisher?.name || '发布者' }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 发布者专属操作区域 -->
-        <div v-if="userRole === 'publisher'" class="action-section">
-          <h3 class="section-title">订单操作</h3>
-          
           <!-- 联系按钮 -->
           <div class="action-card">
             <div class="action-header">
@@ -521,6 +568,19 @@ onMounted(() => {
             </div>
           </div>
         </div>
+
+        <div class="action-card" v-if="canCompleteOrder">
+            <div class="action-header">
+              <span class="action-icon"></span>
+              <span class="action-title">完成订单</span>
+            </div>
+            <div class="action-content">
+              <p class="action-hint">确认完成后，订单状态将变更为「已完成」，关联需求也将同步变更为「已完成」</p>
+              <button class="action-btn success-btn" @click="showCompleteDialog = true" :disabled="updating">
+                确认完成
+              </button>
+            </div>
+          </div>
 
         <!-- 取消订单按钮（双方都可见，符合条件的订单） -->
         <div v-if="canCancel" class="cancel-section">
@@ -537,22 +597,17 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 状态更新对话框 -->
+    <!-- 开始进行对话框 -->
     <div v-if="showStatusDialog" class="dialog-overlay" @click.self="showStatusDialog = false">
       <div class="dialog-container">
         <div class="dialog-header">
-          <h3>更新订单状态</h3>
+          <h3>开始服务</h3>
           <button class="dialog-close" @click="showStatusDialog = false">×</button>
         </div>
         <div class="dialog-body">
           <div class="form-group">
-            <label class="form-label">选择新状态</label>
-            <select v-model="selectedStatus" class="form-select">
-              <option value="">请选择</option>
-              <option v-for="status in availableStatuses" :key="status.value" :value="status.value">
-                {{ status.label }}
-              </option>
-            </select>
+            <label class="form-label">确认将订单状态更新为「进行中」？</label>
+            <p class="action-hint" style="margin-top: 8px;">更新后将无法回退到「已接单」状态</p>
           </div>
           <div class="form-group">
             <label class="form-label">备注说明（可选）</label>
@@ -562,7 +617,32 @@ onMounted(() => {
         <div class="dialog-footer">
           <button class="dialog-btn cancel" @click="showStatusDialog = false">取消</button>
           <button class="dialog-btn confirm" @click="updateOrderStatus" :disabled="updating">
-            {{ updating ? '处理中...' : '确认更新' }}
+            {{ updating ? '处理中...' : '确认开始' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 确认完成对话框 -->
+    <div v-if="showCompleteDialog" class="dialog-overlay" @click.self="showCompleteDialog = false">
+      <div class="dialog-container">
+        <div class="dialog-header">
+          <h3>确认完成订单</h3>
+          <button class="dialog-close" @click="showCompleteDialog = false">×</button>
+        </div>
+        <div class="dialog-body">
+          <p class="warning-text">请确认服务已完成，此操作不可撤销！</p>
+          <p class="action-hint">完成订单后：</p>
+          <ul class="complete-hint-list">
+            <li>订单状态将变更为「已完成」</li>
+            <li>关联需求状态将同步变更为「已完成」</li>
+            <li>双方可对本次服务进行评价</li>
+          </ul>
+        </div>
+        <div class="dialog-footer">
+          <button class="dialog-btn cancel" @click="showCompleteDialog = false">取消</button>
+          <button class="dialog-btn confirm" @click="completeOrder" :disabled="updating">
+            {{ updating ? '处理中...' : '确认完成' }}
           </button>
         </div>
       </div>
@@ -932,6 +1012,16 @@ onMounted(() => {
   transform: translateY(-1px);
 }
 
+.success-btn {
+  background: #52c41a;
+  color: white;
+}
+
+.success-btn:hover:not(:disabled) {
+  background: #389e0d;
+  transform: translateY(-1px);
+}
+
 .outline-btn {
   background: white;
   border: 1px solid #62055f;
@@ -959,6 +1049,18 @@ onMounted(() => {
 
 .cancel-btn:hover:not(:disabled) {
   background: #e5e4e7;
+}
+
+/* 完成提示列表 */
+.complete-hint-list {
+  margin: 8px 0 0 20px;
+  padding: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.complete-hint-list li {
+  margin: 4px 0;
 }
 
 /* 取消订单区域 */
@@ -1094,7 +1196,7 @@ onMounted(() => {
 
 .form-textarea {
   width: 100%;
-  padding: 10px 2px;
+  padding: 10px 12px;
   border: 1px solid #e5e4e7;
   border-radius: 10px;
   font-size: 14px;

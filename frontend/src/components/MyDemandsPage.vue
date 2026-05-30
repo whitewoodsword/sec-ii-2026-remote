@@ -26,10 +26,11 @@
                     </select>
                     <select v-model="filters.category" @change="handleFilterChange">
                         <option value="">全部分类</option>
-                        <option value="生活服务">生活服务</option>
-                        <option value="专业技术">专业技术</option>
-                        <option value="教育培训">教育培训</option>
-                        <option value="设计创意">设计创意</option>
+                        <option value="快递代取">快递代取</option>
+                        <option value="学习辅导">学习辅导</option>
+                        <option value="二手交易">二手交易</option>
+                        <option value="活动组队">活动组队</option>
+                        <option value="其他">其他</option>
                     </select>
                 </div>
                 <button class="refresh-btn" @click="resetFilters">重置</button>

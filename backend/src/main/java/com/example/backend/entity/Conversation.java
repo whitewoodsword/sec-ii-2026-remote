@@ -1,6 +1,12 @@
 package com.example.backend.entity;
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "conversations")
@@ -31,6 +37,7 @@ public class Conversation {
         this.user1Id = user1Id;
         this.user2Id = user2Id;
         this.createdAt = LocalDateTime.now();
+        this.lastMessageTime = LocalDateTime.now();
     }
 
     public Conversation() {

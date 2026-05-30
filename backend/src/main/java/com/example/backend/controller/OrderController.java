@@ -1,8 +1,9 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.ApiResponse;
-import com.example.backend.entity.Order;
-import com.example.backend.service.OrderService;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -10,11 +11,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import com.example.backend.dto.ApiResponse;
+import com.example.backend.entity.Order;
+import com.example.backend.service.OrderService;
 
 @RestController
 @RequestMapping("/orders")
@@ -168,8 +176,7 @@ public class OrderController {
         
         Page<Order> orderPage;
         if (status != null && !status.isEmpty()) {
-            // 这里需要在Service中添加对应方法，或者使用通用搜索
-            orderPage = orderService.searchOrders(null, publisherId, null, status, null, pageable);
+            orderPage = orderService.searchOrders(null, publisherId, null, null, status, null, pageable);
         } else {
             orderPage = orderService.getOrdersAsPublisher(publisherId, pageable);
         }
@@ -202,7 +209,7 @@ public class OrderController {
         
         Page<Order> orderPage;
         if (status != null && !status.isEmpty()) {
-            orderPage = orderService.searchOrders(null, null, acceptorId, status, null, pageable);
+            orderPage = orderService.searchOrders(null, null, acceptorId, null, status, null, pageable);
         } else {
             orderPage = orderService.getOrdersAsAcceptor(acceptorId, pageable);
         }
@@ -219,7 +226,7 @@ public class OrderController {
 
     /**
      * 获取用户所有相关订单（分页）
-     * GET /orders/user/{userId}?page=0&size=10&role=all/publisher/acceptor
+     * GET /orders/user/{userId}?page=0&size=10&role=all/publisher/acceptor&status=可选
      */
     @GetMapping("/user/{userId}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAllUserOrders(
@@ -238,19 +245,20 @@ public class OrderController {
         
         if ("publisher".equalsIgnoreCase(role)) {
             if (status != null && !status.isEmpty()) {
-                orderPage = orderService.searchOrders(null, userId, null, status, null, pageable);
+                orderPage = orderService.searchOrders(null, userId, null, null, status, null, pageable);
             } else {
                 orderPage = orderService.getOrdersAsPublisher(userId, pageable);
             }
         } else if ("acceptor".equalsIgnoreCase(role)) {
             if (status != null && !status.isEmpty()) {
-                orderPage = orderService.searchOrders(null, null, userId, status, null, pageable);
+                orderPage = orderService.searchOrders(null, null, userId, null, status, null, pageable);
             } else {
                 orderPage = orderService.getOrdersAsAcceptor(userId, pageable);
             }
         } else {
+            // role = "all" - 查询用户所有相关订单（作为发布者或接单者）
             if (status != null && !status.isEmpty()) {
-                orderPage = orderService.searchOrders(null, userId, userId, status, null, pageable);
+                orderPage = orderService.searchOrders(null, null, null, userId, status, null, pageable);
             } else {
                 orderPage = orderService.getAllUserOrders(userId, pageable);
             }
@@ -269,13 +277,14 @@ public class OrderController {
 
     /**
      * 多条件搜索订单
-     * GET /orders/search?demandId=&publisherId=&acceptorId=&status=&keyword=&page=0&size=10
+     * GET /orders/search?demandId=&publisherId=&acceptorId=&userId=&status=&keyword=&page=0&size=10
      */
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<Map<String, Object>>> searchOrders(
             @RequestParam(required = false) Long demandId,
             @RequestParam(required = false) Long publisherId,
             @RequestParam(required = false) Long acceptorId,
+            @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
@@ -286,7 +295,7 @@ public class OrderController {
         Sort.Direction sortDirection = direction.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
         
-        Page<Order> orderPage = orderService.searchOrders(demandId, publisherId, acceptorId, status, keyword, pageable);
+        Page<Order> orderPage = orderService.searchOrders(demandId, publisherId, acceptorId, userId, status, keyword, pageable);
         
         Map<String, Object> response = new HashMap<>();
         response.put("content", orderPage.getContent());

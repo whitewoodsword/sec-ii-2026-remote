@@ -1,6 +1,8 @@
 package com.example.backend.repository;
 
-import com.example.backend.entity.Order;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,8 +13,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
+import com.example.backend.entity.Order;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
@@ -95,6 +96,10 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
      */
     @Query("SELECT COUNT(o) FROM Order o WHERE o.acceptorId = :userId")
     long countByAcceptorId(@Param("userId") Long userId);
+
+
+    @Query("SELECT o FROM Order o WHERE (o.publisherId = :userId OR o.acceptorId = :userId) AND o.status = :status")
+    Page<Order> findAllByUserIdAndStatus(@Param("userId") Long userId, @Param("status") String status, Pageable pageable);
 
     /**
      * 根据状态查询订单

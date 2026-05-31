@@ -1,7 +1,11 @@
 package com.example.backend.service;
 
-import com.example.backend.entity.User;
-import com.example.backend.repository.UserRepository;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -9,11 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import com.example.backend.entity.User;
+import com.example.backend.repository.UserRepository;
 
 @Service
 public class UserService {
@@ -31,6 +32,10 @@ public class UserService {
         // 检查手机号是否已存在
         if (userRepository.existsByPhone(phone)) {
             throw new RuntimeException("手机号已注册");
+        }
+
+        if (phone == null || phone.isEmpty()) {
+            throw new RuntimeException("密码必须至少6位");
         }
         
         // 创建新用户

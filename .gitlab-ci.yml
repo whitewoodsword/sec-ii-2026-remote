@@ -32,7 +32,7 @@ test:frontend:
   before_script:
     - cd frontend && npm ci
   script:
-    - npm run build
+    - npm run test
   cache:
     key: frontend-deps
     paths:

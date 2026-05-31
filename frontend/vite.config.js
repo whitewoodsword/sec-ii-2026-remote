@@ -11,4 +11,12 @@ export default defineConfig({
       },
     },
   },
+  test: {
+    globals: true,           // 全局使用 describe, it, expect，无需每次导入
+    environment: 'happy-dom', // 模拟浏览器 DOM 环境
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html']
+    }
+  }
 })

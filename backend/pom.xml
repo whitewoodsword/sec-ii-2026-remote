@@ -86,9 +86,16 @@
         -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- 注释掉 WebMvcTest 依赖 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
         </dependency>
+        -->
         <!--
         <dependency>
             <groupId>org.mybatis.spring.boot</groupId>

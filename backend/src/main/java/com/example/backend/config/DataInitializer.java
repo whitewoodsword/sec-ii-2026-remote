@@ -9,6 +9,7 @@ import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +26,7 @@ import com.example.backend.repository.ReviewRepository;
 import com.example.backend.repository.UserRepository;
 
 @Component
+@Profile("!test")
 @Order(1)
 public class DataInitializer implements CommandLineRunner {
 

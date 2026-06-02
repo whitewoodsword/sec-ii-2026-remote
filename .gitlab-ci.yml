@@ -47,6 +47,7 @@ test:backend:
     MYSQL_DATABASE: campus_hub
     MYSQL_ROOT_PASSWORD: ubuntu
     SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/campus_hub?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    SPRING_PROFILES_ACTIVE: test
   before_script:
     - apt-get update && apt-get install -y mysql-client curl
     - echo "Waiting for MySQL to be ready..."
@@ -54,4 +55,4 @@ test:backend:
     - echo "MySQL is ready!"
   script:
     - cd backend
-    - mvn test -Dspring.profiles.active=gitlab-ci
+    - mvn test -Dspring.profiles.active=test

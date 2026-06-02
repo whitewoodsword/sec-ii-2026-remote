@@ -23,7 +23,7 @@ public class UserService {
     private UserRepository userRepository;
 
     // ========== 用户注册和登录 ==========
-    
+
     /**
      * 用户注册
      */
@@ -37,17 +37,17 @@ public class UserService {
         if (phone == null || phone.isEmpty()) {
             throw new RuntimeException("密码必须至少6位");
         }
-        
+
         // 创建新用户
         User user = new User("user"+phone, phone, md5(password));
         user.setScoreNum(0L);
         user.setAverageScore(null);
         user.setAdmin(false);
         user.setSuperAdmin(false);
-        
+
         return userRepository.save(user);
     }
-    
+
     /**
      * 用户登录
      */
@@ -57,19 +57,19 @@ public class UserService {
         if (userOpt.isEmpty()) {
             throw new RuntimeException("用户不存在");
         }
-        
+
         User user = userOpt.get();
         if (!user.getPassword().equals(md5(password))) {
             throw new RuntimeException("密码错误");
         }
-        
+
         // 生成token
         String token = UUID.randomUUID().toString().replace("-", "");
         user.setToken(token);
         userRepository.updateToken(user.getId(), token);
         return user;
     }
-    
+
     /**
      * 用户登出
      */
@@ -77,7 +77,7 @@ public class UserService {
     public void logout(Long userId) {
         userRepository.clearToken(userId);
     }
-    
+
     /**
      * 根据token获取用户信息
      */
@@ -85,9 +85,9 @@ public class UserService {
         return userRepository.findByValidToken(token)
                 .orElseThrow(() -> new RuntimeException("无效的token"));
     }
-    
+
     // ========== 用户信息管理 ==========
-    
+
     /**
      * 获取用户基本信息
      */
@@ -95,39 +95,39 @@ public class UserService {
         return userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
     }
-    
+
     /**
      * 更新用户信息
      */
     @Transactional
     public User updateUser(Long userId, String name, String avatarPath) {
         User user = getUserById(userId);
-        
+
         if (name != null && !name.isEmpty()) {
             user.setName(name);
         }
         if (avatarPath != null) {
             user.setAvatarPath(avatarPath);
         }
-        
+
         return userRepository.save(user);
     }
-    
+
     /**
      * 修改密码
      */
     @Transactional
     public void changePassword(Long userId, String oldPassword, String newPassword) {
         User user = getUserById(userId);
-        
+
         if (!user.getPassword().equals(md5(oldPassword))) {
             throw new RuntimeException("原密码错误");
         }
-        
+
         user.setPassword(md5(newPassword));
         userRepository.save(user);
     }
-    
+
     /**
      * 重置密码（管理员操作）
      */
@@ -137,7 +137,7 @@ public class UserService {
         user.setPassword(md5(newPassword));
         userRepository.save(user);
     }
-    
+
     /**
      * 删除用户
      */
@@ -150,9 +150,9 @@ public class UserService {
         }
         userRepository.delete(user);
     }
-    
+
     // ========== 管理员相关操作 ==========
-    
+
     /**
      * 设置为管理员
      */
@@ -166,14 +166,14 @@ public class UserService {
         user.setAdmin(isAdmin);
         userRepository.save(user);
     }
-    
+
     /**
      * 获取所有管理员
      */
     public List<User> getAllAdmins() {
         return userRepository.findAllAdmins();
     }
-    
+
     /**
      * 检查是否是管理员
      */
@@ -181,7 +181,7 @@ public class UserService {
         User user = getUserById(userId);
         return user.isAdmin() || user.isSuperAdmin();
     }
-    
+
     /**
      * 检查是否是超级管理员
      */
@@ -189,9 +189,9 @@ public class UserService {
         User user = getUserById(userId);
         return user.isSuperAdmin();
     }
-    
+
     // ========== 评分相关功能 ==========
-    
+
     /**
      * 更新用户评分
      * @param userId 被评价的用户ID
@@ -200,21 +200,21 @@ public class UserService {
     @Transactional
     public void updateUserScore(Long userId, int newScore) {
         User user = getUserById(userId);
-        
+
         Long currentScoreNum = user.getScoreNum() != null ? user.getScoreNum() : 0L;
         Double currentAverage = user.getAverageScore() != null ? user.getAverageScore() : 0.0;
-        
+
         // 计算新的平均分
         double totalScore = currentAverage * currentScoreNum + newScore;
         long newScoreNum = currentScoreNum + 1;
         double newAverage = totalScore / newScoreNum;
-        
+
         // 保留两位小数
         newAverage = Math.round(newAverage * 100) / 100.0;
-        
+
         userRepository.updateUserScore(userId, newAverage, newScoreNum);
     }
-    
+
     /**
      * 获取用户评分信息
      */
@@ -227,17 +227,17 @@ public class UserService {
         info.setScoreNum(user.getScoreNum() != null ? user.getScoreNum() : 0L);
         return info;
     }
-    
+
     /**
      * 获取评分排行榜
      */
     public List<User> getScoreRanking(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        return userRepository.findTopNByOrderByAverageScoreDesc(pageable);
+        return userRepository.findByOrderByAverageScoreDesc(pageable);
     }
-    
+
     // ========== 分页和列表查询 ==========
-    
+
     /**
      * 分页获取所有用户
      */
@@ -245,23 +245,23 @@ public class UserService {
         Pageable pageable = PageRequest.of(page, size);
         return userRepository.findAllByOrderByIdDesc(pageable);
     }
-    
+
     /**
      * 搜索用户
      */
     public List<User> searchUsers(String keyword) {
         return userRepository.findByNameContaining(keyword);
     }
-    
+
     /**
      * 获取所有普通用户（非管理员）
      */
     public List<User> getAllNormalUsers() {
         return userRepository.findAllNormalUsers();
     }
-    
+
     // ========== 统计信息 ==========
-    
+
     /**
      * 获取平台统计信息
      */
@@ -273,9 +273,9 @@ public class UserService {
         stats.setUsersWithHighScore(userRepository.countUsersWithScoreAbove(4.0));
         return stats;
     }
-    
+
     // ========== 辅助类 ==========
-    
+
     /**
      * MD5加密
      */
@@ -292,9 +292,9 @@ public class UserService {
             throw new RuntimeException("MD5加密失败", e);
         }
     }
-    
+
     // ========== 内部类 ==========
-    
+
     /**
      * 评分信息类
      */
@@ -303,7 +303,7 @@ public class UserService {
         private String userName;
         private Double averageScore;
         private Long scoreNum;
-        
+
         // Getters and Setters
         public Long getUserId() { return userId; }
         public void setUserId(Long userId) { this.userId = userId; }
@@ -314,7 +314,7 @@ public class UserService {
         public Long getScoreNum() { return scoreNum; }
         public void setScoreNum(Long scoreNum) { this.scoreNum = scoreNum; }
     }
-    
+
     /**
      * 平台统计信息类
      */
@@ -323,7 +323,7 @@ public class UserService {
         private long totalAdmins;
         private long usersWithAvatar;
         private long usersWithHighScore;
-        
+
         // Getters and Setters
         public long getTotalUsers() { return totalUsers; }
         public void setTotalUsers(long totalUsers) { this.totalUsers = totalUsers; }

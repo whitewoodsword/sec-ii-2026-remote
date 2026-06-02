@@ -103,7 +103,7 @@ class UserServiceTests {
             when(userRepository.existsByPhone(TEST_PHONE)).thenReturn(true);
 
             // When & Then
-            RuntimeException exception = assertThrows(RuntimeException.class, 
+            RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.register(TEST_PHONE, TEST_PASSWORD));
             assertEquals("手机号已注册", exception.getMessage());
 
@@ -114,7 +114,7 @@ class UserServiceTests {
         @DisplayName("注册时手机号为空应抛出异常")
         void testRegisterWithEmptyPhone() {
             // When & Then
-            assertThrows(Exception.class, 
+            assertThrows(Exception.class,
                 () -> userService.register("", TEST_PASSWORD));
         }
     }
@@ -150,7 +150,7 @@ class UserServiceTests {
             when(userRepository.findByPhone(TEST_PHONE)).thenReturn(Optional.empty());
 
             // When & Then
-            RuntimeException exception = assertThrows(RuntimeException.class, 
+            RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.login(TEST_PHONE, TEST_PASSWORD));
             assertEquals("用户不存在", exception.getMessage());
 
@@ -165,7 +165,7 @@ class UserServiceTests {
             when(userRepository.findByPhone(TEST_PHONE)).thenReturn(Optional.of(testUser));
 
             // When & Then
-            RuntimeException exception = assertThrows(RuntimeException.class, 
+            RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.login(TEST_PHONE, TEST_PASSWORD));
             assertEquals("密码错误", exception.getMessage());
         }
@@ -198,7 +198,7 @@ class UserServiceTests {
             when(userRepository.findByValidToken("invalid_token")).thenReturn(Optional.empty());
 
             // When & Then
-            RuntimeException exception = assertThrows(RuntimeException.class, 
+            RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.getUserByToken("invalid_token"));
             assertEquals("无效的token", exception.getMessage());
         }
@@ -245,7 +245,7 @@ class UserServiceTests {
             when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.empty());
 
             // When & Then
-            RuntimeException exception = assertThrows(RuntimeException.class, 
+            RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.getUserById(TEST_USER_ID));
             assertEquals("用户不存在", exception.getMessage());
         }
@@ -310,7 +310,7 @@ class UserServiceTests {
             when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(testUser));
 
             // When & Then
-            RuntimeException exception = assertThrows(RuntimeException.class, 
+            RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.changePassword(TEST_USER_ID, "wrong_password", "654321"));
             assertEquals("原密码错误", exception.getMessage());
         }
@@ -338,7 +338,7 @@ class UserServiceTests {
             when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(testUser));
 
             // When & Then
-            RuntimeException exception = assertThrows(RuntimeException.class, 
+            RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.deleteUser(TEST_USER_ID));
             assertEquals("不能删除超级管理员账号", exception.getMessage());
             verify(userRepository, never()).delete(any());
@@ -389,7 +389,7 @@ class UserServiceTests {
             when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(testUser));
 
             // When & Then
-            RuntimeException exception = assertThrows(RuntimeException.class, 
+            RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.setAdmin(TEST_USER_ID, true));
             assertEquals("不能修改超级管理员的权限", exception.getMessage());
             verify(userRepository, never()).save(any());
@@ -496,14 +496,14 @@ class UserServiceTests {
             // Given
             List<User> ranking = List.of(testUser);
             Pageable pageable = PageRequest.of(0, 10);
-            when(userRepository.findTopNByOrderByAverageScoreDesc(pageable)).thenReturn(ranking);
+            when(userRepository.findByOrderByAverageScoreDesc(pageable)).thenReturn(ranking);
 
             // When
             List<User> result = userService.getScoreRanking(10);
 
             // Then
             assertEquals(1, result.size());
-            verify(userRepository).findTopNByOrderByAverageScoreDesc(pageable);
+            verify(userRepository).findByOrderByAverageScoreDesc(pageable);
         }
     }
 
@@ -602,7 +602,7 @@ class UserServiceTests {
 
             String encrypted = (String) md5Method.invoke(userService, "123456");
             assertEquals("e10adc3949ba59abbe56e057f20f883e", encrypted);
-            
+
             String emptyEncrypted = (String) md5Method.invoke(userService, "");
             assertEquals("d41d8cd98f00b204e9800998ecf8427e", emptyEncrypted);
         }
@@ -621,7 +621,7 @@ class UserServiceTests {
             when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.empty());
 
             // When & Then
-            assertThrows(RuntimeException.class, 
+            assertThrows(RuntimeException.class,
                 () -> userService.updateUser(TEST_USER_ID, "新名字", null));
         }
 
@@ -632,7 +632,7 @@ class UserServiceTests {
             when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.empty());
 
             // When & Then
-            assertThrows(RuntimeException.class, 
+            assertThrows(RuntimeException.class,
                 () -> userService.updateUserScore(TEST_USER_ID, 5));
         }
 
@@ -643,7 +643,7 @@ class UserServiceTests {
             when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.empty());
 
             // When & Then
-            assertThrows(RuntimeException.class, 
+            assertThrows(RuntimeException.class,
                 () -> userService.resetPassword(TEST_USER_ID, "newpass"));
         }
 
@@ -669,13 +669,13 @@ class UserServiceTests {
             // Given
             int limit = 5;
             Pageable pageable = PageRequest.of(0, limit);
-            when(userRepository.findTopNByOrderByAverageScoreDesc(pageable)).thenReturn(List.of());
+            when(userRepository.findByOrderByAverageScoreDesc(pageable)).thenReturn(List.of());
 
             // When
             userService.getScoreRanking(limit);
 
             // Then
-            verify(userRepository).findTopNByOrderByAverageScoreDesc(pageable);
+            verify(userRepository).findByOrderByAverageScoreDesc(pageable);
         }
     }
 }

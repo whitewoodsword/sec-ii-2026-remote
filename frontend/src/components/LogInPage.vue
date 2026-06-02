@@ -58,7 +58,7 @@ const handleLogin =  async () => {
     console.log(result)
     if (result.code === 200) {
       authStore.setAuth(result.data)
-      showNotification('登录成功', '欢迎回来，' + result.data.username) 
+      showNotification('登录成功', '欢迎回来，' + result.data.user.name +" !") 
     }else {
       showNotification('登录失败', result.message || '请检查你的手机号和密码')
     }

@@ -116,7 +116,7 @@ public class DataInitializer implements CommandLineRunner {
         rootUser.setPhone("123456");
         rootUser.setPassword(md5("123456"));
         rootUser.setScoreNum(0L);
-        rootUser.setAverageScore(5.0);
+        rootUser.setAverageScore(null);
         rootUser.setAdmin(true);
         rootUser.setSuperAdmin(true);        
         User saved = userRepository.save(rootUser);

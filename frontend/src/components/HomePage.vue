@@ -56,11 +56,10 @@
 
     <main class="main-content">
       <div class="content-container">
-        <!-- 左侧：发布入口 + 分类筛选 -->
+        <!-- 左侧：发布入口 + 分类筛选 (sticky) -->
         <aside class="left-sidebar">
           <!-- 发布快捷入口 -->
           <div class="publish-card">
-            <h3 class="card-title">发布需求</h3>
             <p class="card-desc">快速发布您的需求，找到合适的帮手</p>
             <button class="publish-btn" @click="goToPublish">+ 发布新需求</button>
           </div>
@@ -82,7 +81,7 @@
           </div>
         </aside>
 
-        <!-- 中间：智能推荐需求流 -->
+        <!-- 中间：智能推荐需求流（正常滚动） -->
         <div class="demands-feed">
           <div class="feed-header">
             <h3 class="feed-title">推荐需求</h3>
@@ -108,31 +107,32 @@
           </div>
           <div v-else class="demands-list">
             <div v-for="demand in demands" :key="demand.id" class="demand-card" @click="router.push(`/demand/${demand.id}`)">
-              <div class="demand-header">
-                <h4 class="demand-title">{{ demand.title }}</h4>
-                <span class="demand-category">{{ demand.category }}</span>
+              <!-- 左侧图片区域 -->
+              <div class="demand-image" v-if="getFirstImageUrl(demand.pictureUrls)">
+                <img :src="getFirstImageUrl(demand.pictureUrls)" :alt="demand.title" @error="handleImageError" />
               </div>
-              <p class="demand-desc">{{ demand.description || '暂无描述' }}</p>
-              <div class="demand-meta">
-                <div class="meta-item">
-                  <span class="meta-label">报酬</span>
-                  <span class="meta-value reward">¥{{ demand.reward?.toFixed(2) || '面议' }}</span>
+              
+              <!-- 右侧内容区域 -->
+              <div class="demand-content">
+                <div class="demand-header">
+                  <h4 class="demand-title">{{ demand.title }}</h4>
+                  <span class="demand-category">{{ demand.category }}</span>
                 </div>
-                <div class="meta-item">
-                  <span class="meta-label">地点</span>
-                  <span class="meta-value">{{ demand.location || '未指定' }}</span>
+                <p class="demand-desc">{{ demand.description || '暂无描述' }}</p>
+                <div class="demand-meta">
+                  <div class="meta-item">
+                    <span class="meta-label">报酬</span>
+                    <span class="meta-value reward">¥{{ demand.reward?.toFixed(2) || '面议' }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <span class="meta-label">地点</span>
+                    <span class="meta-value">{{ demand.location || '未指定' }}</span>
+                  </div>
                 </div>
-                <div class="meta-item">
-                  <span class="meta-label">发布者用户ID</span>
-                  <span class="meta-value credit" :class="getCreditClass(demand.publisherCredit)">
-                    {{ demand.publisherId || 'NULL' }} 
-                    <span class="credit-score">{{ demand.publisherCredit ? `(${demand.publisherCredit})` : '' }}</span>
-                  </span>
+                <div class="demand-footer">
+                  <span class="demand-time">{{ formatRelativeTime(demand.createdAt) }}</span>
+                  <span v-if="demand.isOwn" class="my-demand-badge">我的需求</span>
                 </div>
-              </div>
-              <div class="demand-footer">
-                <span class="demand-time">{{ formatRelativeTime(demand.createdAt) }}</span>
-                <span v-if="demand.isOwn">我的需求</span>
               </div>
             </div>
           </div>
@@ -153,9 +153,9 @@
           </div>
         </div>
 
-        <!-- 右侧：订单看板 + 信用分 -->
+        <!-- 右侧：订单看板 + 信用分 (sticky, 订单卡片最大高度滚动) -->
         <aside class="right-sidebar">
-          <!-- 进行中订单卡片 -->
+          <!-- 进行中订单卡片 - 固定最大高度，滚动条美化 -->
           <div class="orders-card">
             <h3 class="card-title">待处理订单</h3>
             <div v-if="loadingOrders" class="loading-mini">
@@ -167,10 +167,13 @@
             <div v-else class="orders-list">
               <div v-for="order in activeOrders" :key="order.id" class="order-item">
                 <div class="order-info" @click="goToOrderDetail(order.id)">
-                  <div class="order-title">{{ '订单 #' + order.id}}</div>
+                  <div class="order-title">订单 #{{ order.id }}</div>
                   <div class="order-status" :class="getStatusClass(order.status)">
                     {{ getStatusText(order.status) }}
                   </div>
+                </div>
+                <div class="order-demand-info" v-if="order.demandTitle">
+                  {{ order.demandTitle }}
                 </div>
               </div>
             </div>
@@ -180,7 +183,7 @@
           <div class="credit-card">
             <h3 class="card-title">我的信用</h3>
             <div class="credit-score-large">
-              <span class="score-number">{{ userCredit.averageScore || '暂无' }}</span>
+              <span class="score-number">{{ userCredit.averageScore !== null ? userCredit.averageScore.toFixed(1) : '暂无' }}</span>
               <span class="score-label">信用分</span>
             </div>
             <div class="credit-stats">
@@ -223,9 +226,9 @@ const router = useRouter()
 const showDropdown = ref(false)
 const searchKeyword = ref('')
 const selectedCategory = ref('')
-const currentSort = ref('distance')
+const currentSort = ref('time')   // 默认最新发布
 const currentPage = ref(0)
-const pageSize = ref(10)
+const pageSize = ref(12)
 const loadingDemands = ref(false)
 const loadingOrders = ref(false)
 
@@ -257,9 +260,9 @@ const categories = [
 
 // 排序选项
 const sortOptions = [
-  { label: '距离优先', value: 'distance' },
   { label: '最新发布', value: 'time' },
-  { label: '信用优先', value: 'credit' }
+  { label: '信用优先', value: 'credit' },
+  { label: '报酬最高', value: 'reward' }
 ]
 
 // 头像
@@ -269,6 +272,47 @@ const displayAvatar = computed(() => {
   }
   return 'http://localhost:8080/api/files/default-avatar.png'
 })
+
+// 获取需求的第一张图片URL
+const getFirstImageUrl = (pictureUrls) => {
+  if (!pictureUrls) return null
+  try {
+    // pictureUrls 可能是 JSON 字符串数组或逗号分隔的字符串
+    let urls = []
+    if (typeof pictureUrls === 'string') {
+      // 尝试解析 JSON
+      if (pictureUrls.startsWith('[')) {
+        urls = JSON.parse(pictureUrls)
+      } else if (pictureUrls.includes(',')) {
+        urls = pictureUrls.split(',')
+      } else {
+        urls = [pictureUrls]
+      }
+    } else if (Array.isArray(pictureUrls)) {
+      urls = pictureUrls
+    }
+    
+    if (urls.length > 0 && urls[0]) {
+      // 如果是相对路径，加上 base URL
+      const firstUrl = urls[0]
+      if (firstUrl.startsWith('/')) {
+        return `http://localhost:8080${firstUrl}`
+      }
+      if (firstUrl.startsWith('http')) {
+        return firstUrl
+      }
+      return `http://localhost:8080/${firstUrl}`
+    }
+  } catch (e) {
+    console.error('解析图片URL失败:', e)
+  }
+  return null
+}
+
+// 图片加载失败时的处理
+const handleImageError = (event) => {
+  event.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"%3E%3Crect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"%3E%3C/rect%3E%3Ccircle cx="8.5" cy="8.5" r="1.5"%3E%3C/circle%3E%3Cpolyline points="21 15 16 10 5 21"%3E%3C/polyline%3E%3C/svg%3E'
+}
 
 // 显示通知
 const showNotification = (title, content) => {
@@ -289,7 +333,7 @@ const fetchTotalUnreadCount = async () => {
   }
 }
 
-// 获取需求列表
+// 获取需求列表（支持排序）
 const fetchDemands = async () => {
   loadingDemands.value = true
   try {
@@ -300,6 +344,15 @@ const fetchDemands = async () => {
     })
     if (selectedCategory.value) params.append('category', selectedCategory.value)
     if (searchKeyword.value) params.append('keyword', searchKeyword.value)
+    
+    // 排序逻辑：根据currentSort构建sort参数
+    if (currentSort.value === 'time') {
+      params.append('sort', 'createdAt,desc')
+    } else if (currentSort.value === 'credit') {
+      params.append('sort', 'publisherCredit,desc')
+    } else if (currentSort.value === 'reward') {
+      params.append('sort', 'reward,desc')
+    }
 
     const response = await axios.get(`http://localhost:8080/demands/search?${params}`)
     if (response.data.code === 200 && response.data.data) {
@@ -321,27 +374,19 @@ const fetchDemands = async () => {
   }
 }
 
-// 获取排序字段
-/*const getSortByField = () => {
-  switch (currentSort.value) {
-    case 'distance': return 'location'
-    case 'time': return 'createdAt'
-    case 'credit': return 'publisherCredit'
-    default: return 'createdAt'
-  }
-}*/
-
-// 获取进行中订单
+// 获取进行中订单（作为承接人）
 const fetchActiveOrders = async () => {
   if (!authStore.isLoggedIn) return
   loadingOrders.value = true
   try {
+    // 获取用户作为承接人的已接受订单（ACCEPTED状态）
     const response = await axios.get(`http://localhost:8080/orders/acceptor/${authStore.user.id}`, {
-      params: { page: 0, size: 10, status: 'ACCEPTED' }
+      params: { page: 0, size: 20, status: 'ACCEPTED' }
     })
     if (response.data.code === 200 && response.data.data) {
       activeOrders.value = response.data.data.content || []
     }
+    // 获取已完成订单数量
     const completedRes = await axios.get(`http://localhost:8080/orders/user/${authStore.user.id}`, {
       params: { page: 0, size: 1, status: 'COMPLETED' }
     })
@@ -369,38 +414,11 @@ const fetchUserCredit = async () => {
       }
     }else{
       console.error('获取用户信息失败:', response.data.message)
-      return
     }
   } catch (error) {
     console.error('获取信用信息失败:', error)
   }
 }
-
-// 接单操作
-/*const handleAcceptDemand = async (demand) => {
-  if (!authStore.isLoggedIn) {
-    router.push('/login')
-    return
-  }
-  if (demand.isOwn) {
-    showNotification('提示', '不能接自己的需求')
-    return
-  }
-  
-  try {
-    const response = await axios.post(`http://localhost:8080/orders/create`, null, {
-      params: { demandId: demand.id, userId: authStore.user.id }
-    })
-    if (response.data.code === 200 || response.data.code === 201) {
-      showNotification('接单成功', '您已成功接单，请前往订单页面查看')
-      fetchActiveOrders()
-    }
-  } catch (error) {
-    console.error('接单失败:', error)
-    const msg = error.response?.data?.message || '接单失败，请稍后重试'
-    showNotification('接单失败', msg)
-  }
-}*/
 
 // 启动轮询
 const startPolling = () => {
@@ -408,6 +426,7 @@ const startPolling = () => {
   pollingInterval = setInterval(() => {
     if (authStore.isLoggedIn) {
       fetchTotalUnreadCount()
+      fetchActiveOrders()   // 订单状态可能变化，也轮询一下
     }
   }, 5000) // 每5秒轮询一次
 }
@@ -425,7 +444,6 @@ const goToPublish = () => router.push('/create/demand')
 const goToProfile = () => { showDropdown.value = false; router.push('/my/profile') }
 const goToMessages = () => { 
   showDropdown.value = false
-  // 清除未读计数（可选，进入消息页面后清零）
   totalUnreadCount.value = 0
   router.push('/my/conversations') 
 }
@@ -438,16 +456,12 @@ const formatRelativeTime = (isoString) => {
   const now = new Date()
   const diff = now - date
   if (diff < 24 * 3600 * 1000) {
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+    return `今天 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+  }
+  if (diff < 48 * 3600 * 1000) {
+    return `昨天 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
   }
   return `${date.getMonth() + 1}/${date.getDate()}`
-}
-
-const getCreditClass = (credit) => {
-  if (!credit) return ''
-  if (credit >= 4.5) return 'high'
-  if (credit >= 3.5) return 'medium'
-  return 'low'
 }
 
 const getStatusClass = (status) => {
@@ -637,7 +651,10 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
 
 .header-btn {
   background: transparent;
@@ -692,7 +709,7 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   color: white;
   font-size: 11px;
   font-weight: 600;
-  padding: 2px;
+  padding: 2px 6px;
   border-radius: 20px;
   min-width: 20px;
   text-align: center;
@@ -721,7 +738,7 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
 
 /* 主内容区 */
 .main-content {
-  margin-top: 70px;
+  margin-top: 75px;
   flex: 1;
   padding: 30px 40px;
 }
@@ -732,14 +749,23 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   display: grid;
   grid-template-columns: 260px 1fr 300px;
   gap: 24px;
+  align-items: start;
 }
 
-/* 左侧边栏 */
+/* 左侧边栏 - 使用 sticky 固定 */
 .left-sidebar,
 .right-sidebar {
+  position: sticky;
+  top: 75px; /* 头部高度75px + 留白30px */
+  align-self: start;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 14px;
+}
+
+/* 右侧边栏也使用 sticky */
+.right-sidebar {
+  top: 80px;
 }
 
 .publish-card,
@@ -748,9 +774,11 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
 .credit-card {
   background: white;
   border-radius: 16px;
-  padding: 20px;
+  padding: 15px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid #e8ecf0;
+  display: flex;
+  flex-direction: column;
 }
 
 .card-title {
@@ -866,17 +894,58 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   gap: 16px;
 }
 
+/* 需求卡片 - 新增图片布局 */
 .demand-card {
   background: white;
   border-radius: 16px;
-  padding: 20px;
+  padding: 16px;
   border: 1px solid #e8ecf0;
   transition: box-shadow 0.2s;
   cursor: pointer;
+  display: flex;
+  gap: 16px;
 }
 
 .demand-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* 左侧图片区域 */
+.demand-image {
+  flex-shrink: 0;
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #f5f5f5;
+}
+
+.demand-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.demand-image-placeholder {
+  flex-shrink: 0;
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ccc;
+}
+
+.placeholder-icon {
+  font-size: 32px;
+}
+
+/* 右侧内容区域 */
+.demand-content {
+  flex: 1;
+  min-width: 0; /* 防止溢出 */
 }
 
 .demand-header {
@@ -884,6 +953,8 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .demand-title {
@@ -899,6 +970,7 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   background: #f0f2f5;
   border-radius: 20px;
   color: #5a6e8a;
+  white-space: nowrap;
 }
 
 .demand-desc {
@@ -935,21 +1007,6 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   font-weight: 600;
 }
 
-.meta-value.credit {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.credit-score {
-  font-size: 12px;
-  color: #27ae60;
-}
-
-.credit-score.high { color: #27ae60; }
-.credit-score.medium { color: #f39c12; }
-.credit-score.low { color: #e74c3c; }
-
 .demand-footer {
   display: flex;
   justify-content: space-between;
@@ -963,39 +1020,62 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   color: #9aa6b5;
 }
 
-.accept-btn {
-  padding: 6px 20px;
-  background: #62055f;
-  color: white;
-  border: none;
-  border-radius: 30px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
+.my-demand-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #f0f2f5;
+  border-radius: 12px;
+  color: #62055f;
 }
 
-.accept-btn:hover:not(:disabled) {
-  background: #7a0e76;
-  transform: translateY(-1px);
+/* 右侧订单卡片 - 固定最大高度，内容滚动 + 滚动条美化 */
+.orders-card {
+  max-height: 150px;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.accept-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-/* 右侧订单卡片 */
 .orders-list {
+  flex: 1;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-right: 4px;
+  /* 滚动条美化 */
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+.orders-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.orders-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.orders-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.orders-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .order-item {
   padding: 12px 0;
   border-bottom: 1px solid #f0f2f5;
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.order-item:hover {
+  background: #fafafc;
 }
 
 .order-item:last-child {
@@ -1006,7 +1086,7 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .order-title {
@@ -1025,9 +1105,17 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
 .order-status.accepted { background: #e8f4fd; color: #3498db; }
 .order-status.progress { background: #fee8e0; color: #e67e22; }
 
+.order-demand-info {
+  font-size: 12px;
+  color: #7a8aa3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .empty-orders {
   text-align: center;
-  padding: 24px 0;
+  padding: 32px 0;
   color: #9aa6b5;
   font-size: 13px;
 }
@@ -1076,6 +1164,12 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   color: #9aa6b5;
 }
 
+.loading-mini {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
 .loading-spinner {
   width: 32px;
   height: 32px;
@@ -1089,6 +1183,7 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
 .loading-spinner.small {
   width: 20px;
   height: 20px;
+  margin: 0;
 }
 
 @keyframes spin {
@@ -1106,15 +1201,21 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
 .page-btn {
   padding: 6px 14px;
   background: transparent;
-  border: none;
+  border: 1px solid #e8ecf0;
   border-radius: 8px;
   font-size: 13px;
   color: #62055f;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #f5f2f7;
+  border-color: #62055f;
 }
 
 .page-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
@@ -1135,6 +1236,10 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   .header-search {
     max-width: 280px;
   }
+  .left-sidebar,
+  .right-sidebar {
+    top: 95px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1142,16 +1247,35 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
     grid-template-columns: 1fr;
   }
   .left-sidebar, .right-sidebar {
+    position: static;
     order: 1;
   }
   .demands-feed {
     order: 2;
   }
   .header-headline {
-    font-size: 20px;
+    font-size: 24px;
   }
   .main-content {
     padding: 20px;
+  }
+  .fixed-header {
+    padding: 0 16px;
+  }
+  .header-search {
+    margin: 0 12px;
+    max-width: 200px;
+  }
+  
+  /* 移动端卡片布局调整 */
+  .demand-card {
+    flex-direction: column;
+  }
+  
+  .demand-image,
+  .demand-image-placeholder {
+    width: 100%;
+    height: 160px;
   }
 }
 </style>

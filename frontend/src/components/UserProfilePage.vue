@@ -51,7 +51,7 @@
                 <span>更换头像</span>
               </div>
             </div>
-            <h3 class="user-name-display">{{ editableName || authStore.user?.name || '用户' }}</h3>
+            <h3 class="user-name-display">{{ displayName || authStore.user?.name || '用户' }}</h3>
             <div class="user-stats">
               <div class="stat-item">
                 <span class="stat-label">平均评分</span>
@@ -82,14 +82,26 @@
               <div class="form-row">
                 <label class="form-label">昵称</label>
                 <div class="form-field">
-                  <input 
-                    v-model="editableName" 
-                    type="text" 
-                    class="name-input"
-                    placeholder="请输入昵称"
-                    @blur="saveName"
-                  />
-                  <button class="edit-btn" @click="saveName">保存</button>
+                  <!-- 正常显示模式 -->
+                  <template v-if="!isEditingName">
+                    <span class="readonly-text">{{ displayName || authStore.user?.name || '用户' }}</span>
+                    <button class="edit-mode-btn" @click="startEditName">
+                      修改昵称
+                    </button>
+                  </template>
+                  <!-- 编辑模式 -->
+                  <template v-else>
+                    <input 
+                      ref="nameInputRef"
+                      v-model="editableName" 
+                      type="text" 
+                      class="name-input"
+                      placeholder="请输入昵称"
+                      @keyup.enter="saveName"
+                    />
+                    <button class="edit-btn" @click="saveName">保存</button>
+                    <button class="cancel-btn" @click="cancelEditName">取消</button>
+                  </template>
                 </div>
               </div>
               <div class="form-row">
@@ -149,7 +161,7 @@
 
 <script setup>
 import { useAuthStore } from '../stores/auth'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import AlertBox from './SmallComponents/AlertBox.vue'
 import router from '../router'
 import axios from 'axios'
@@ -173,12 +185,13 @@ const userScoreInfo = ref({
   scoreNum: null
 })
 
-// 可编辑的昵称
-const editableName = ref('')
+// 昵称编辑相关
+const isEditingName = ref(false)      // 是否处于编辑模式
+const editableName = ref('')           // 编辑中的昵称
+const nameInputRef = ref(null)         // 输入框引用
 
-// 头像上传相关ref
-const avatarInput = ref(null)
-
+// 显示用的昵称（保存成功后的值）
+const displayName = ref('')
 
 const showNotification = (title, content, isHtml = false) => {
   alertConfig.value = {
@@ -197,7 +210,6 @@ const displayAvatar = computed(() => {
   return 'http://localhost:8080/api/files/default-avatar.png'
 })
 
-
 const formatDate = (dateStr) => {
   if (!dateStr) return null
   try {
@@ -208,14 +220,40 @@ const formatDate = (dateStr) => {
   }
 }
 
+// 开始编辑昵称
+const startEditName = () => {
+  editableName.value = displayName.value || authStore.user?.name || ''
+  isEditingName.value = true
+  // 等待DOM更新后自动聚焦输入框
+  nextTick(() => {
+    if (nameInputRef.value) {
+      nameInputRef.value.focus()
+    }
+  })
+}
+
+// 取消编辑昵称
+const cancelEditName = () => {
+  isEditingName.value = false
+  editableName.value = ''
+}
+
 // 保存昵称
 const saveName = async () => {
-  if (!editableName.value || editableName.value === authStore.user?.name) {
-    alert('请输入昵称')
+  const newName = editableName.value?.trim()
+  
+  if (!newName) {
+    showNotification('提示', '昵称不能为空')
     return
   }
+  
+  if (newName === (displayName.value || authStore.user?.name)) {
+    // 昵称未改变，直接退出编辑模式
+    isEditingName.value = false
+    return
+  }
+  
   try {
-    // TODO: 调用后端API更新用户昵称
     const response = await fetch('http://localhost:8080/users/name', {
       method: 'PUT',
       headers: {
@@ -223,24 +261,23 @@ const saveName = async () => {
       },
       body: JSON.stringify({
         id: authStore.user?.id,
-        name: editableName.value,
+        name: newName,
         avatarPath: authStore.user?.avatarPath
       })
     })
     const result = await response.json()
-    // 模拟更新store中的用户信息
-    console.log(result)
+    
     if(result.code === 200 && authStore.user){
-      authStore.updateUserName(editableName.value)
+      authStore.updateUserName(newName)
+      displayName.value = newName  // 更新显示用的昵称
       showNotification('更新成功', '您的用户昵称已更新！')
-    }else{
-      showNotification('更新失败', '请稍后重试')
+      isEditingName.value = false   // 退出编辑模式
+    } else {
+      showNotification('更新失败', result.message || '请稍后重试')
     }
     
   } catch (error) {
     showNotification('更新失败', error.message || '请稍后重试')
-    // 恢复原昵称
-    editableName.value = authStore.user?.name || ''
   }
 }
 
@@ -248,6 +285,9 @@ const saveName = async () => {
 const triggerAvatarUpload = () => {
   avatarInput.value?.click()
 }
+
+// 头像上传相关ref
+const avatarInput = ref(null)
 
 // 处理头像文件选择
 const handleAvatarChange = async(event) => {
@@ -290,10 +330,7 @@ const handleAvatarChange = async(event) => {
       if (authStore.user) {
         authStore.user.avatarPath = avatarUrl
       }
-      
-      
 
-      //showNotification('上传成功', '头像已更新')
     } else {
       throw new Error(response.data.message || '上传失败')
     }
@@ -366,12 +403,8 @@ const initUserInfo = async () => {
     return
   }
   
-  // 设置可编辑昵称的初始值
-  editableName.value = authStore.user?.name || ''
-  
-  // TODO: 从后端获取用户评分信息
-  // const scoreInfo = await api.getUserScoreInfo(authStore.user.id)
-  // userScoreInfo.value = scoreInfo
+  // 设置显示用的昵称
+  displayName.value = authStore.user?.name || ''
   
   // 模拟示例数据（实际应替换为真实API调用）
   userScoreInfo.value = {
@@ -415,6 +448,7 @@ onMounted(() => {
   font-weight: 600;
   color: #ffff;
   margin: 0;
+  cursor: pointer;
 }
 
 .header-left {
@@ -724,6 +758,41 @@ onMounted(() => {
 
 .edit-btn:hover {
   background-color: #4a0447;
+}
+
+.cancel-btn {
+  padding: 6px 16px;
+  background-color: #f0f0f0;
+  color: #666;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 10px;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.edit-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 30px;
+  background-color: transparent;
+  color: #666;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+
+
+.edit-icon {
+  font-size: 12px;
 }
 
 .readonly-text {

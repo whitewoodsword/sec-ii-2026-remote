@@ -62,7 +62,7 @@ public class OrderService {
         }
 
         Demand demand = demandOpt.get();
-        
+
         // 检查需求状态是否为PENDING
         if (!"PENDING".equals(demand.getStatus())) {
             throw new RuntimeException("该需求当前状态为" + demand.getStatus() + "，无法接单");
@@ -92,11 +92,11 @@ public class OrderService {
         order.setUpdatedAt(LocalDateTime.now());
 
         Order savedOrder = orderRepository.save(order);
-        
+
         // 更新需求状态为ACCEPTED，并绑定订单ID
         demandService.updateDemandStatus(demandId, "ACCEPTED");
         demandService.updateOrderId(demandId, savedOrder.getId());
-        
+
         return savedOrder;
     }
 
@@ -134,7 +134,7 @@ public class OrderService {
         }
 
         Order order = orderOpt.get();
-        
+
         // 验证用户权限（必须是订单相关方）
         if (!order.getPublisherId().equals(userId) && !order.getAcceptorId().equals(userId)) {
             throw new RuntimeException("无权操作此订单");
@@ -148,19 +148,19 @@ public class OrderService {
         // 更新状态
         order.setStatus(newStatus);
         order.setUpdatedAt(LocalDateTime.now());
-        
+
         if (note != null && !note.isEmpty()) {
             order.setLatestRequesterNote(note);
         }
-        
+
         // 如果是完成状态，设置完成时间
         if ("COMPLETED".equals(newStatus)) {
             order.setCompletedAt(LocalDateTime.now());
         }
-        
+
         // 同步更新需求状态
         updateDemandStatusFromOrder(order.getDemandId(), newStatus);
-        
+
         return orderRepository.save(order);
     }
 
@@ -175,7 +175,7 @@ public class OrderService {
         }
 
         Order order = orderOpt.get();
-        
+
         // 验证用户权限
         if (!order.getPublisherId().equals(userId) && !order.getAcceptorId().equals(userId)) {
             throw new RuntimeException("无权操作此订单");
@@ -183,7 +183,7 @@ public class OrderService {
 
         order.setLatestRequesterNote(note);
         order.setUpdatedAt(LocalDateTime.now());
-        
+
         return orderRepository.save(order);
     }
 
@@ -198,7 +198,7 @@ public class OrderService {
         }
 
         Order order = orderOpt.get();
-        
+
         // 只有发布者或接单者可以取消订单
         if (!order.getPublisherId().equals(userId) && !order.getAcceptorId().equals(userId)) {
             throw new RuntimeException("无权操作此订单");
@@ -214,12 +214,12 @@ public class OrderService {
         if (reason != null) {
             order.setLatestRequesterNote(reason);
         }
-        
+
         // 恢复需求状态为PENDING
         demandService.resetStatus(order.getDemandId(), "PENDING");
         // 清除需求上的订单ID
         demandService.updateOrderId(order.getDemandId(), null);
-        
+
         return orderRepository.save(order);
     }
 
@@ -234,7 +234,7 @@ public class OrderService {
         }
 
         Order order = orderOpt.get();
-        
+
         // 只有发布者可以完成订单
         if (!order.getPublisherId().equals(userId)) {
             throw new RuntimeException("只有需求发布者可以完成订单");
@@ -248,10 +248,10 @@ public class OrderService {
         order.setCompletedAt(LocalDateTime.now());
         order.setUpdatedAt(LocalDateTime.now());
         order.setCommentId(commentId);
-        
+
         // 更新需求状态
         demandService.updateDemandStatus(order.getDemandId(), "COMPLETED");
-        
+
         return orderRepository.save(order);
     }
 
@@ -290,15 +290,15 @@ public class OrderService {
      * 多条件查询订单（修复版）
      * 支持按发布者或接单者单独查询，也支持按用户ID查询所有相关订单
      */
-    public Page<Order> searchOrders(Long demandId, Long publisherId, Long acceptorId, 
+    public Page<Order> searchOrders(Long demandId, Long publisherId, Long acceptorId,
                                      Long userId, String status, String keyword, Pageable pageable) {
         Specification<Order> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-            
+
             if (demandId != null) {
                 predicates.add(cb.equal(root.get("demandId"), demandId));
             }
-            
+
             // 处理用户相关的查询：如果提供了 userId，则查询发布者或接单者为该用户的订单
             if (userId != null) {
                 Predicate publisherPredicate = cb.equal(root.get("publisherId"), userId);
@@ -313,20 +313,20 @@ public class OrderService {
                     predicates.add(cb.equal(root.get("acceptorId"), acceptorId));
                 }
             }
-            
+
             if (status != null && !status.isEmpty()) {
                 predicates.add(cb.equal(root.get("status"), status));
             }
-            
+
             if (keyword != null && !keyword.isEmpty()) {
                 Predicate noteLike = cb.like(root.get("latestRequesterNote"), "%" + keyword + "%");
                 predicates.add(noteLike);
             }
-            
+
             query.distinct(true);
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        
+
         return orderRepository.findAll(spec, pageable);
     }
 
@@ -338,7 +338,7 @@ public class OrderService {
         stats.setUserId(userId);
         stats.setTotalAsPublisher(orderRepository.countByPublisherId(userId));
         stats.setTotalAsAcceptor(orderRepository.countByAcceptorId(userId));
-        
+
         return stats;
     }
 
@@ -366,7 +366,7 @@ public class OrderService {
             case "CANCELLED" -> "PENDING";
             default -> null;
         };
-        
+
         if (demandStatus != null) {
             demandService.updateDemandStatus(demandId, demandStatus);
         }

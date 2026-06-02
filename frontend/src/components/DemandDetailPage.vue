@@ -12,6 +12,7 @@ const demandId = ref(route.params.id)
 const demand = ref(null)
 const loading = ref(false)
 const statusUpdating = ref(false)
+const publisherInfo = ref(null) // 添加发布者信息
 
 // 通知框
 const showAlert = ref(false)
@@ -65,8 +66,8 @@ const isPublisher = computed(() => {
 
 // 是否可编辑（发布者且状态为待接取或被拒绝）
 const canEdit = computed(() => {
-  return isPublisher.value && 
-         (demand.value?.status === 'PENDING' || demand.value?.status === 'REJECTED')
+  return isPublisher.value &&
+      (demand.value?.status === 'PENDING' || demand.value?.status === 'REJECTED')
 })
 
 // 是否可取消（发布者且状态为待接取）
@@ -76,10 +77,28 @@ const canCancel = computed(() => {
 
 // 是否可接取（非发布者、已登录、状态为待接取）
 const canAccept = computed(() => {
-  return authStore.isLoggedIn && 
-         !isPublisher.value && 
-         demand.value?.status === 'PENDING'
+  return authStore.isLoggedIn &&
+      !isPublisher.value &&
+      demand.value?.status === 'PENDING'
 })
+
+// 获取发布者信息
+const fetchPublisherInfo = async () => {
+  if (!demand.value?.publisherId) return
+  try {
+    const response = await fetch(`http://localhost:8080/users/${demand.value.publisherId}`, {
+      headers: {
+        'Authorization': authStore.token ? `Bearer ${authStore.token}` : ''
+      }
+    })
+    const result = await response.json()
+    if (result.code === 200) {
+      publisherInfo.value = result.data
+    }
+  } catch (error) {
+    console.error('获取发布者信息失败:', error)
+  }
+}
 
 // 获取需求详情
 const fetchDemand = async () => {
@@ -94,6 +113,8 @@ const fetchDemand = async () => {
     console.log('获取需求成功:', result)
     if (result.code === 200) {
       demand.value = result.data
+      // 获取需求详情后，再获取发布者信息
+      await fetchPublisherInfo()
     } else {
       throw new Error(result.message || '获取需求失败')
     }
@@ -117,7 +138,7 @@ const updateStatus = async (status) => {
       }
     })
     const result = await response.json()
-    
+
     if (result.code === 200) {
       demand.value.status = status
       showNotification('操作成功', `需求已${statusMap[status].text}`)
@@ -145,11 +166,10 @@ const handleEdit = () => {
 }
 
 // 联系TA
-// 联系对方
 const handleContact = async () => {
   try {
     const otherUserId = demand.value.publisherId;
-    
+
     const response = await fetch(`http://localhost:8080/conversations?user1Id=${authStore.user.id}&user2Id=${otherUserId}`, {
       method: 'POST',
       headers: {
@@ -159,9 +179,8 @@ const handleContact = async () => {
 
     if (response.status === 200 || response.status === 201) {
       const result = await response.json()
-      
+
       if (result.code === 200 && result.data) {
-        // 获取到对话信息，跳转到会话详情页
         router.push(`/my/conversations`)
       }
     } else {
@@ -174,12 +193,15 @@ const handleContact = async () => {
   }
 }
 
+// 跳转到用户详情页
+const goToUserProfile = (userId) => {
+  router.push(`/user/${userId}`)
+}
 
 // 接取订单
 const handleAccept = async () => {
-  // TODO: 实现接取订单功能
   try{
-     const response = await fetch(`http://localhost:8080/orders/create?demandId=${demandId.value}&userId=${authStore.user.id}`, {
+    const response = await fetch(`http://localhost:8080/orders/create?demandId=${demandId.value}&userId=${authStore.user.id}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${authStore.token}`
@@ -216,6 +238,13 @@ const formatReward = (reward) => {
   return `¥${reward.toFixed(2)}`
 }
 
+// 获取头像URL
+const getAvatarUrl = (avatarPath) => {
+  if (!avatarPath) return '/default-avatar.png' // 默认头像路径
+  if (avatarPath.startsWith('http')) return avatarPath
+  return `http://localhost:8080${avatarPath}`
+}
+
 onMounted(() => {
   fetchDemand()
 })
@@ -241,6 +270,7 @@ onMounted(() => {
 
       <!-- 内容 -->
       <div v-else-if="demand" class="detail-content">
+
         <!-- 状态栏 -->
         <div class="status-bar" :style="{ backgroundColor: statusInfo.bg }">
           <span class="status-dot" :style="{ backgroundColor: statusInfo.color }"></span>
@@ -278,6 +308,38 @@ onMounted(() => {
           </div>
         </div>
 
+        <div class="description-section">
+          <h3 class="section-title">需求发布者</h3>
+        </div>
+
+        <div v-if="publisherInfo" class="publisher-card" @click="goToUserProfile(publisherInfo.id)">
+          <div class="publisher-avatar">
+            <img
+                :src="getAvatarUrl(publisherInfo.avatarPath)"
+                :alt="publisherInfo.name"
+                @error="(e) => e.target.src = 'http://localhost:8080/api/files/default-avatar.png'"
+            />
+          </div>
+          <div class="publisher-info">
+            <div class="publisher-name">
+              {{ publisherInfo.name }}
+              <span v-if="publisherInfo.isAdmin" class="admin-badge">管理员</span>
+              <span v-if="publisherInfo.isSuperAdmin" class="super-admin-badge">超级管理员</span>
+            </div>
+            <div class="publisher-stats">
+              <span class="stat-item">
+                <span class="stat-label">评分</span>
+                <span class="stat-value">{{ publisherInfo.averageScore?.toFixed(1) || '暂无' }}</span>
+              </span>
+              <span class="stat-item">
+                <span class="stat-label">评价数</span>
+                <span class="stat-value">{{ publisherInfo.scoreNum || 0 }}</span>
+              </span>
+            </div>
+          </div>
+          <div class="publisher-arrow">›</div>
+        </div>
+
         <!-- 需求描述 -->
         <div class="description-section">
           <h3 class="section-title">需求描述</h3>
@@ -290,11 +352,11 @@ onMounted(() => {
         <div v-if="pictureUrls.length > 0" class="images-section">
           <h3 class="section-title">相关图片 ({{ pictureUrls.length }})</h3>
           <div class="image-grid">
-            <div 
-              v-for="(url, index) in pictureUrls" 
-              :key="index" 
-              class="image-item"
-              @click="window.open('http://localhost:8080' + url, '_blank')"
+            <div
+                v-for="(url, index) in pictureUrls"
+                :key="index"
+                class="image-item"
+                @click="window.open('http://localhost:8080' + url, '_blank')"
             >
               <img :src="'http://localhost:8080' + url" :alt="`图片${index + 1}`" />
             </div>
@@ -305,27 +367,29 @@ onMounted(() => {
         <div class="action-buttons">
           <!-- 发布者操作按钮 -->
           <template v-if="isPublisher">
-            <button 
-              v-if="canEdit"
-              class="action-btn edit-btn" 
-              @click="handleEdit"
-              :disabled="statusUpdating"
+            <button
+                v-if="canEdit"
+                class="action-btn edit-btn"
+                @click="handleEdit"
+                :disabled="statusUpdating"
             >
               编辑需求
             </button>
-            <button 
-              v-if="canCancel"
-              class="action-btn cancel-btn" 
-              @click="handleCancel"
-              :disabled="statusUpdating"
+            <button
+                v-if="canCancel"
+                class="action-btn cancel-btn"
+                @click="handleCancel"
+                :disabled="statusUpdating"
             >
               取消需求
             </button>
           </template>
 
-          <!-- 非发布者操作按钮（已登录且可接取） -->           
-          <template v-else-if="canAccept">
-            
+          <!-- 非发布者操作按钮（已登录且可接取） -->
+          <template v-else-if="canAccept && authStore.isLoggedIn">
+            <button class="action-btn contact-btn" @click="handleContact">
+              💬 联系TA
+            </button>
             <button class="action-btn accept-btn" @click="handleAccept">
               📋 接取订单
             </button>
@@ -333,14 +397,8 @@ onMounted(() => {
 
           <!-- 未登录提示 -->
           <div v-else-if="!authStore.isLoggedIn && demand.status === 'PENDING'" class="login-tip">
-            <span>请先</span>
-            <button class="login-link" @click="router.push('/login')">登录</button>
-            <span>后联系发布者或接取订单</span>
+            <button class="login-link" @click="router.push('/login')">请先登录后再联系发布者或接取订单</button>
           </div>
-
-          <button class="action-btn contact-btn" @click="handleContact">
-              💬 联系TA
-            </button>
         </div>
       </div>
 
@@ -353,12 +411,12 @@ onMounted(() => {
 
     <!-- 通知框 -->
     <AlertBox
-      v-model:visible="showAlert"
-      :title="alertConfig.title"
-      :content="alertConfig.content"
-      :html-content="alertConfig.htmlContent"
-      :confirm-text="alertConfig.confirmText"
-      @confirm="handleAlertConfirm"
+        v-model:visible="showAlert"
+        :title="alertConfig.title"
+        :content="alertConfig.content"
+        :html-content="alertConfig.htmlContent"
+        :confirm-text="alertConfig.confirmText"
+        @confirm="handleAlertConfirm"
     />
   </div>
 </template>
@@ -449,6 +507,105 @@ onMounted(() => {
 /* 内容区域 */
 .detail-content {
   padding: 32px;
+}
+
+/* 发布者卡片 */
+.publisher-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(98, 5, 95, 0.1);
+}
+
+
+
+.publisher-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #e5e4e7;
+  flex-shrink: 0;
+  border: none;
+}
+
+.publisher-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.publisher-info {
+  flex: 1;
+}
+
+.publisher-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #ff9800;
+  color: white;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.super-admin-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #f44336;
+  color: white;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.publisher-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-label {
+  color: #999;
+}
+
+.stat-value {
+  color: #62055f;
+  font-weight: 600;
+}
+
+.publisher-arrow {
+  font-size: 24px;
+  color: #62055f;
+  font-weight: 300;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.publisher-card:hover .publisher-arrow {
+  opacity: 1;
+  transform: translateX(2px);
 }
 
 /* 状态栏 */
@@ -639,7 +796,7 @@ onMounted(() => {
   padding: 12px;
   font-size: 14px;
   color: #666;
-  background: #faf9fb;
+  background: #ffffff;
   border-radius: 12px;
 }
 
@@ -679,34 +836,52 @@ onMounted(() => {
   .detail-container {
     border-radius: 16px;
   }
-  
+
   .page-header {
     padding: 16px 20px;
   }
-  
+
   .detail-content {
     padding: 20px;
   }
-  
+
   .page-title {
     font-size: 20px;
   }
-  
+
   .demand-title {
     font-size: 20px;
   }
-  
+
   .info-grid {
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  
+
   .image-grid {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   }
-  
+
   .action-buttons {
     flex-direction: column;
+  }
+
+  .publisher-card {
+    padding: 12px;
+  }
+
+  .publisher-avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .publisher-name {
+    font-size: 14px;
+  }
+
+  .publisher-stats {
+    font-size: 11px;
+    gap: 12px;
   }
 }
 </style>

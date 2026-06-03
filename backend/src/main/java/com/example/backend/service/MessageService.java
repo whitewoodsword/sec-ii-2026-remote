@@ -1,21 +1,27 @@
 package com.example.backend.service;
 
-import com.example.backend.entity.Conversation;
-import com.example.backend.entity.Message;
-import com.example.backend.entity.User;
-import com.example.backend.repository.MessageRepository;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.List;
+
+import com.example.backend.entity.Conversation;
+import com.example.backend.entity.Message;
+import com.example.backend.entity.User;
+import com.example.backend.repository.ConversationRepository;
+import com.example.backend.repository.MessageRepository;
 
 @Service
 public class MessageService {
 
     @Autowired
     private MessageRepository messageRepository;
+
+    @Autowired
+    private ConversationRepository conversationRepository;  
     
     @Autowired
     private ConversationService conversationService;
@@ -53,11 +59,14 @@ public class MessageService {
      * 获取对话中的消息（分页，按时间倒序）
      */
     public List<Message> getMessagesByConversation(Long conversationId, Long userId, int page, int size) {
-        // 验证对话权限
-        Conversation conversation = conversationService.getOrCreateConversation(
-            userId, 
-            getOtherUserId(conversationId, userId)
-        );
+        // 直接查询对话并验证用户权限
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("对话不存在"));
+        
+        // 验证用户是否属于该对话
+        if (!conversation.getUser1Id().equals(userId) && !conversation.getUser2Id().equals(userId)) {
+            throw new RuntimeException("无权访问此对话");
+        }
         
         Pageable pageable = PageRequest.of(page, size);
         return messageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, pageable);
@@ -192,11 +201,16 @@ public class MessageService {
      * 获取对话中的对方用户ID
      */
     private Long getOtherUserId(Long conversationId, Long currentUserId) {
-        Conversation conversation = conversationService.getOrCreateConversation(currentUserId, currentUserId);
-        // 注意：这里简化处理，实际应该从数据库查询
-        return null;
+        try{
+            User otherUser = conversationService.getConversationDetail(conversationId, currentUserId).getOtherUser();
+            if (otherUser.getId().equals(currentUserId) || currentUserId.equals(currentUserId)) {
+                return otherUser.getId();
+            }
+        }catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+        throw new RuntimeException("当前用户不属于该对话");
     }
-    
     // ========== DTO类 ==========
     
     public static class LatestConversationMessageDto {

@@ -1,19 +1,21 @@
 package com.example.backend.service;
 
-import com.example.backend.entity.Conversation;
-import com.example.backend.entity.Message;
-import com.example.backend.entity.User;
-import com.example.backend.repository.ConversationRepository;
-import com.example.backend.repository.MessageRepository;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.example.backend.entity.Conversation;
+import com.example.backend.entity.Message;
+import com.example.backend.entity.User;
+import com.example.backend.repository.ConversationRepository;
+import com.example.backend.repository.MessageRepository;
 
 @Service
 public class ConversationService {

@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -32,6 +31,7 @@ import org.springframework.data.domain.Pageable;
 import com.example.backend.entity.Conversation;
 import com.example.backend.entity.Message;
 import com.example.backend.entity.User;
+import com.example.backend.repository.ConversationRepository;
 import com.example.backend.repository.MessageRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +43,9 @@ class MessageServiceTests {
 
     @Mock
     private ConversationService conversationService;
+
+    @Mock
+    private ConversationRepository conversationRepository; 
 
     @Mock
     private UserService userService;
@@ -220,11 +223,10 @@ class MessageServiceTests {
             List<Message> messages = Arrays.asList(testMessage);
             Pageable pageable = PageRequest.of(0, 20);
             
-            when(conversationService.getOrCreateConversation(anyLong(), anyLong()))
-                .thenReturn(testConversation);
+            when(conversationRepository.findById(TEST_CONVERSATION_ID))
+                .thenReturn(Optional.of(testConversation));
             when(messageRepository.findByConversationIdOrderByCreatedAtDesc(TEST_CONVERSATION_ID, pageable))
                 .thenReturn(messages);
-
             // When
             List<Message> result = messageService.getMessagesByConversation(TEST_CONVERSATION_ID, TEST_USER_ID_1, 0, 20);
 

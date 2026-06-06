@@ -1,5 +1,6 @@
 stages:
   - style
+  - build
   - test
 
 style:frontend:
@@ -25,6 +26,29 @@ style:backend:
     paths:
       - ~/.m2/repository
   allow_failure: false
+
+build:frontend:
+  stage: build
+  image: node:20
+  before_script:
+    - cd frontend && npm ci
+  script:
+    - npm run build
+  cache:
+    key: frontend-deps
+    paths:
+      - frontend/node_modules/
+
+build:backend:
+  stage: build
+  image: maven:3.9-eclipse-temurin-17
+  script:
+    - cd backend && mvn clean package -DskipTests
+  cache:
+    key: maven-deps
+    paths:
+      - ~/.m2/repository
+
 
 test:frontend:
   stage: test
@@ -56,3 +80,7 @@ test:backend:
   script:
     - cd backend
     - mvn test -Dspring.profiles.active=test
+  cache:
+    key: maven-deps
+    paths:
+      - ~/.m2/repository

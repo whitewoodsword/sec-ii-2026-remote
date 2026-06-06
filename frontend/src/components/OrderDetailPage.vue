@@ -490,7 +490,6 @@ onMounted(() => {
           <!-- 开始进行按钮 -->
           <div class="action-card" v-if="canStartOrder">
             <div class="action-header">
-              <span class="action-icon">▶️</span>
               <span class="action-title">开始服务</span>
             </div>
             <div class="action-content">
@@ -507,7 +506,6 @@ onMounted(() => {
           <!-- 联系按钮 -->
           <div class="action-card">
             <div class="action-header">
-              <span class="action-icon">💬</span>
               <span class="action-title">联系需求发布者</span>
             </div>
             <div class="action-content">
@@ -525,7 +523,6 @@ onMounted(() => {
           
           <div class="action-card" v-if="canEditDeadline">
             <div class="action-header">
-              <span class="action-icon">⏰</span>
               <span class="action-title">截止时间</span>
             </div>
             <div v-if="!editingDeadline" class="action-content">
@@ -553,7 +550,6 @@ onMounted(() => {
           <!-- 联系按钮 -->
           <div class="action-card">
             <div class="action-header">
-              <span class="action-icon">💬</span>
               <span class="action-title">联系接单者</span>
             </div>
             <div class="action-content">
@@ -567,7 +563,6 @@ onMounted(() => {
 
         <div class="action-card" v-if="canCompleteOrder">
             <div class="action-header">
-              <span class="action-icon"></span>
               <span class="action-title">完成订单</span>
             </div>
             <div class="action-content">

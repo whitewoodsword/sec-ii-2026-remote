@@ -261,8 +261,8 @@ const categories = [
 // 排序选项
 const sortOptions = [
   { label: '最新发布', value: 'time' },
-  { label: '信用优先', value: 'credit' },
-  { label: '报酬最高', value: 'reward' }
+  { label: '报酬最高', value: 'reward' },
+  { label: '即将过期', value: 'deadline' },
 ]
 
 // 头像
@@ -333,6 +333,7 @@ const fetchTotalUnreadCount = async () => {
   }
 }
 
+
 // 获取需求列表（支持排序）
 const fetchDemands = async () => {
   loadingDemands.value = true
@@ -345,14 +346,26 @@ const fetchDemands = async () => {
     if (selectedCategory.value) params.append('category', selectedCategory.value)
     if (searchKeyword.value) params.append('keyword', searchKeyword.value)
     
-    // 排序逻辑：根据currentSort构建sort参数
+    // 排序逻辑：根据currentSort构建sortBy和direction参数
+    let sortBy = 'createdAt'
+    let direction = 'desc'
+    
     if (currentSort.value === 'time') {
-      params.append('sort', 'createdAt,desc')
+      sortBy = 'createdAt'
+      direction = 'desc'
     } else if (currentSort.value === 'credit') {
-      params.append('sort', 'publisherCredit,desc')
+      // sortBy = 'publisherCredit'
+      // direction = 'desc'
     } else if (currentSort.value === 'reward') {
-      params.append('sort', 'reward,desc')
+      sortBy = 'reward'
+      direction = 'desc'
+    }else if (currentSort.value === 'deadline') {
+      sortBy = 'deadline'
+      direction = 'asc'  // 升序，最早的截止时间排在前面
     }
+    
+    params.append('sortBy', sortBy)
+    params.append('direction', direction)
 
     const response = await axios.get(`http://localhost:8080/demands/search?${params}`)
     if (response.data.code === 200 && response.data.data) {

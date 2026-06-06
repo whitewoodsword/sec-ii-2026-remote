@@ -46,7 +46,7 @@
               placeholder="搜索需求标题..."
               @keyup.enter="handleSearch"
             />
-            <button class="search-btn" @click="handleSearch">🔍</button>
+            <button class="search-btn" @click="handleSearch">搜索</button>
           </div>
         </div>
         <button class="reset-btn" @click="resetFilters">重置</button>

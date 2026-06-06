@@ -189,12 +189,14 @@ public class DataInitializer implements CommandLineRunner {
     private List<Demand> initDemands(User rootUser, List<User> users) {
         List<Demand> demands = new ArrayList<>();
         
-        // 需求数据数组
+        // 需求数据数组 - 扩展了更多校园场景需求
         Object[][] demandsData = {
             // 快递代取类
             {"急！帮我取个快递", "快递在菜鸟驿站，比较大件，需要两个人帮忙搬到宿舍", "快递代取", "南区菜鸟驿站", 2, 15.0},
             {"帮忙取快递", "顺丰快递，小件，送到北区宿舍楼下", "快递代取", "北区快递点", 1, 8.0},
             {"求代取快递", "三个快递，在邮政收发室，送到图书馆", "快递代取", "邮政收发室", 1, 12.0},
+            {"代取大件快递", "买了个行李箱，太重了搬不动，求帮忙", "快递代取", "西门快递点", 1, 20.0},
+            {"紧急取快递", "药品快递，急需使用，在线等", "快递代取", "东门快递柜", 1, 25.0},
             
             // 学习辅导类
             {"考研数学辅导", "需要辅导高等数学，主要是微积分部分，周末有空", "学习辅导", "图书馆自习室", 3, 50.0},
@@ -202,6 +204,10 @@ public class DataInitializer implements CommandLineRunner {
             {"英语四六级辅导", "英语基础薄弱，希望找人一起练习听力和阅读", "学习辅导", "学生活动中心", 4, 35.0},
             {"大作业代码调试", "Web项目有个bug一直找不到原因，有偿求助", "学习辅导", "线上", 1, 30.0},
             {"期末复习资料分享", "求计算机网络期末复习资料和往年试题", "学习辅导", "图书馆", 1, 10.0},
+            {"Python数据分析辅导", "机器学习作业不会做，需要指导pandas和numpy", "学习辅导", "计算机实验室", 2, 45.0},
+            {"论文写作指导", "毕业论文格式和内容需要指导，文科专业", "学习辅导", "线上", 1, 60.0},
+            {"C++算法辅导", "数据结构课程实验，图论算法实现困难", "学习辅导", "教学楼B座", 2, 40.0},
+            {"英语口语练习伙伴", "准备雅思考试，找口语练习搭档", "学习辅导", "咖啡厅", 1, 30.0},
             
             // 二手交易类
             {"出二手电动车", "九成新电动车，骑了半年，续航30km，带发票", "二手交易", "南区宿舍", 0, 800.0},
@@ -209,6 +215,11 @@ public class DataInitializer implements CommandLineRunner {
             {"出吉他", "练习吉他，买来没用几次，适合新手", "二手交易", "学生活动中心", 1, 200.0},
             {"求购二手自行车", "预算200左右，要求能正常骑行", "二手交易", "全校", 2, 200.0},
             {"毕业甩卖小电器", "台灯、风扇、电水壶等，价格便宜", "二手交易", "南区宿舍", 3, 50.0},
+            {"出售笔记本电脑", "联想ThinkPad，i5处理器，8G内存，适合办公学习", "二手交易", "北区宿舍", 1, 2500.0},
+            {"出运动鞋", "Nike运动鞋，42码，穿过两次，95新", "二手交易", "体育馆", 1, 300.0},
+            {"求购考研资料", "计算机考研专业课资料，最好是408统考", "二手交易", "图书馆", 2, 100.0},
+            {"出售相机", "佳能单反相机，入门级，带镜头和配件", "二手交易", "学生活动中心", 1, 1800.0},
+            {"出桌游卡牌", "各种桌游和卡牌游戏，聚会必备", "二手交易", "宿舍区", 2, 80.0},
             
             // 活动组队类
             {"周末羽毛球约球", "本人菜鸟，想找人一起打羽毛球锻炼身体", "活动组队", "体育馆", 2, 0.0},
@@ -216,11 +227,23 @@ public class DataInitializer implements CommandLineRunner {
             {"读书会招募", "每周三晚上一起读书分享，这周读《活着》", "活动组队", "图书馆研讨室", 1, 0.0},
             {"王者荣耀开黑", "找稳定队友上分，主玩中路辅助", "活动组队", "线上", 2, 0.0},
             {"摄影爱好者外拍", "周末去校园拍秋景，找摄影同好一起", "活动组队", "校园内", 1, 0.0},
+            {"篮球友谊赛组队", "缺两个后卫，周末下午比赛", "活动组队", "篮球场", 2, 0.0},
+            {"创业比赛组队", "互联网+大赛，需要有技术和设计能力的同学", "活动组队", "创业孵化中心", 3, 0.0},
+            {"音乐节志愿者", "校园音乐节招募志愿者，有证书", "活动组队", "学生活动中心", 5, 0.0},
+            {"登山徒步活动", "周六去郊外爬山，注意安全装备", "活动组队", "校门口集合", 4, 0.0},
+            {"电竞比赛报名", "英雄联盟校内赛，缺ADC位置", "活动组队", "线上", 1, 0.0},
             
             // 其他类
             {"帮忙占座", "明天上午图书馆三楼靠窗位置，有偿", "其他", "图书馆", 1, 5.0},
             {"寻物启事", "丢失蓝色水杯一个，捡到请联系", "其他", "教学楼", 0, 0.0},
             {"上门喂猫", "周末出门两天，需要帮忙喂一下小猫", "其他", "北区宿舍", 1, 30.0},
+            {"帮忙打印资料", "需要打印50页双面，彩色打印", "其他", "打印店", 1, 15.0},
+            {"临时搬运工", "搬家需要帮忙搬东西，大概2小时", "其他", "南区宿舍", 2, 40.0},
+            {"代购食堂饭菜", "生病在宿舍，帮忙带份午饭", "其他", "第一食堂", 1, 5.0},
+            {"帮忙修电脑", "电脑蓝屏无法开机，需要技术支援", "其他", "宿舍区", 1, 30.0},
+            {"代排队", "热门讲座需要代排队入场", "其他", "报告厅", 1, 10.0},
+            {"宠物临时照顾", "出差三天，需要帮忙照顾狗狗", "其他", "校外", 1, 100.0},
+            {"帮忙投票", "网络评选活动，需要帮忙投票点赞", "其他", "线上", 1, 5.0},
         };
         
         List<User> allUsers = new ArrayList<>(users);
@@ -248,9 +271,9 @@ public class DataInitializer implements CommandLineRunner {
             // 设置状态（大部分为PENDING，少量为其他状态）
             String status;
             int statusRand = random.nextInt(10);
-            if (statusRand < 7) {
+            if (statusRand < 6) {
                 status = "PENDING";
-            } else if (statusRand < 9) {
+            } else if (statusRand < 8) {
                 status = "ACCEPTED";
             } else {
                 status = "COMPLETED";
@@ -272,6 +295,7 @@ public class DataInitializer implements CommandLineRunner {
         return demands;
     }
     
+
     /**
      * 初始化订单数据（基于已接受的需求）
      */
@@ -309,7 +333,15 @@ public class DataInitializer implements CommandLineRunner {
             }
             
             // 添加备注
-            String[] notes = {"好的，我来帮你", "请问具体什么时候方便", "没问题，保证完成任务"};
+            String[] notes = {
+                "好的，我来帮你", 
+                "请问具体什么时候方便", 
+                "没问题，保证完成任务",
+                "收到，马上联系你",
+                "可以，我们详聊",
+                "OK，交给我吧",
+                "明白了，我会尽快处理"
+            };
             order.setLatestRequesterNote(notes[random.nextInt(notes.length)]);
             
             com.example.backend.entity.Order savedOrder = orderRepository.save(order);
@@ -323,7 +355,7 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("初始化订单 " + orders.size() + " 条");
         return orders;
     }
-    
+
     /**
      * 初始化评价数据
      */
@@ -336,8 +368,8 @@ public class DataInitializer implements CommandLineRunner {
                 continue;
             }
             
-            // 随机决定是否已有评价
-            if (random.nextDouble() > 0.7) { // 70%的完成订单有评价
+            // 随机决定是否已有评价（降低跳过概率，让更多订单有评价）
+            if (random.nextDouble() > 0.4) { // 60%的完成订单有评价
                 continue;
             }
             
@@ -353,7 +385,12 @@ public class DataInitializer implements CommandLineRunner {
                 "非常好，强烈推荐！",
                 "一般般，还有提升空间",
                 "很棒的小伙伴，给力！",
-                "感谢帮忙，下次还找你"
+                "感谢帮忙，下次还找你",
+                "效率很高，五星好评",
+                "服务态度很好，满意",
+                "完美解决我的问题，谢谢",
+                "靠谱的人，值得信赖",
+                "沟通顺畅，合作愉快"
             };
             
             Review review1 = new Review();
@@ -374,8 +411,8 @@ public class DataInitializer implements CommandLineRunner {
             // 更新用户评分
             updateUserAverageScore(order.getAcceptorId());
             
-            // 随机决定接单者是否也评价发布者
-            if (random.nextDouble() > 0.5) {
+            // 提高双向评价概率（70%的订单会有双方互评）
+            if (random.nextDouble() > 0.3) {
                 int score2 = 3 + random.nextInt(3);
                 Review review2 = new Review();
                 review2.setOrderId(order.getId());
@@ -415,9 +452,9 @@ public class DataInitializer implements CommandLineRunner {
         int conversationCount = 0;
         int messageCount = 0;
         
-        // 为每对用户创建一些对话（限制数量避免过多）
-        for (int i = 0; i < allUsers.size() && i < 8; i++) {
-            for (int j = i + 1; j < allUsers.size() && j < 8; j++) {
+        // 为每对用户创建一些对话（扩大范围到前10个用户）
+        for (int i = 0; i < allUsers.size() && i < 10; i++) {
+            for (int j = i + 1; j < allUsers.size() && j < 10; j++) {
                 User user1 = allUsers.get(i);
                 User user2 = allUsers.get(j);
                 
@@ -426,8 +463,8 @@ public class DataInitializer implements CommandLineRunner {
                     continue;
                 }
                 
-                // 随机决定是否创建对话（50%概率）
-                if (random.nextDouble() > 0.5) {
+                // 提高创建对话的概率（70%概率创建对话）
+                if (random.nextDouble() > 0.7) {
                     continue;
                 }
                 
@@ -437,8 +474,8 @@ public class DataInitializer implements CommandLineRunner {
                 Conversation savedConv = conversationRepository.save(conversation);
                 conversationCount++;
                 
-                // 创建消息
-                int messageCountForConv = 2 + random.nextInt(8);
+                // 创建更多消息（3-12条）
+                int messageCountForConv = 3 + random.nextInt(10);
                 LocalDateTime msgTime = savedConv.getCreatedAt();
                 
                 for (int k = 0; k < messageCountForConv; k++) {
@@ -455,7 +492,17 @@ public class DataInitializer implements CommandLineRunner {
                         "抱歉，我刚看到消息",
                         "没问题，交给我吧",
                         "请问具体位置在哪里？",
-                        "好的，我已经到了"
+                        "好的，我已经到了",
+                        "辛苦了，非常感谢",
+                        "明天几点见面比较合适？",
+                        "价格可以再商量一下吗？",
+                        "可以的，这个价格我能接受",
+                        "那就这么定了",
+                        "我这边有点事，可能要晚一点",
+                        "没关系，我不着急",
+                        "已经完成啦，请确认一下",
+                        "收到了，很满意",
+                        "下次有需要再找你"
                     };
                     
                     Message message = new Message(senderId, receiverId, 
@@ -480,7 +527,7 @@ public class DataInitializer implements CommandLineRunner {
         
         System.out.println("初始化对话 " + conversationCount + " 个，消息 " + messageCount + " 条");
     }
-    
+
     private String md5(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");

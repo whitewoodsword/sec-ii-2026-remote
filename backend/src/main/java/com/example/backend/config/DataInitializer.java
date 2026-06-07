@@ -4,8 +4,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -48,55 +51,146 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private MessageRepository messageRepository;
 
-    private Random random = new Random();
-
-    // 定义校园常见分类
-    private static final String[] CATEGORIES = {"快递代取", "学习辅导", "二手交易", "活动组队", "其他"};
+    // 固定分类
+    private static final List<String> CATEGORIES = Arrays.asList("快递代取", "学习辅导", "二手交易", "活动组队", "其他");
     
-    // 定义校园地点
-    private static final String[] LOCATIONS = {
+    // 固定地点
+    private static final List<String> LOCATIONS = Arrays.asList(
         "南区宿舍", "北区宿舍", "图书馆", "第一食堂", "第二食堂", 
         "教学楼A座", "教学楼B座", "体育馆", "游泳馆", "学生活动中心"
-    };
-    
-    // 定义头像路径
-    private static final String[] AVATAR_PATHS = {
-        "/avatars/default1.png", "/avatars/default2.png", "/avatars/default3.png",
-        "/avatars/default4.png", "/avatars/default5.png"
-    };
+    );
+
+    // 固定需求模板
+    private static final List<DemandTemplate> DEMAND_TEMPLATES = Arrays.asList(
+        new DemandTemplate("帮忙取快递", "快递在菜鸟驿站，帮忙送到宿舍", "快递代取", 8.0),
+        new DemandTemplate("急！取大件快递", "行李箱太重，求帮忙搬上楼", "快递代取", 15.0),
+        new DemandTemplate("代取多个快递", "有三个快递在快递站，求帮忙", "快递代取", 12.0),
+        new DemandTemplate("高数辅导", "需要辅导微积分，期末复习", "学习辅导", 50.0),
+        new DemandTemplate("Java编程辅导", "课程设计不会做，求指导", "学习辅导", 60.0),
+        new DemandTemplate("英语四六级辅导", "英语基础差，求带", "学习辅导", 40.0),
+        new DemandTemplate("出售二手电动车", "九成新，续航30km", "二手交易", 800.0),
+        new DemandTemplate("二手教材出售", "计算机专业教材全套", "二手交易", 150.0),
+        new DemandTemplate("吉他出售", "初学者吉他，八成新", "二手交易", 200.0),
+        new DemandTemplate("羽毛球组队", "周末一起打球", "活动组队", 0.0),
+        new DemandTemplate("图书馆占座", "帮忙占靠窗位置", "其他", 10.0),
+        new DemandTemplate("上门喂猫", "周末出门，求帮忙喂猫", "其他", 30.0),
+        new DemandTemplate("帮忙打印资料", "需要打印50页双面", "其他", 15.0),
+        new DemandTemplate("代购食堂饭菜", "生病在宿舍，求带饭", "其他", 8.0),
+        new DemandTemplate("考研数学辅导", "线代和概率论辅导", "学习辅导", 55.0),
+        new DemandTemplate("Python数据分析指导", "机器学习作业需要帮助", "学习辅导", 70.0),
+        new DemandTemplate("前端开发指导", "Vue项目问题求解", "学习辅导", 65.0),
+        new DemandTemplate("笔记本电脑出售", "联想ThinkPad，办公学习用", "二手交易", 2500.0),
+        new DemandTemplate("毕业甩卖小电器", "台灯、风扇、电水壶等", "二手交易", 50.0),
+        new DemandTemplate("王者荣耀开黑", "找稳定队友上分", "活动组队", 0.0),
+        new DemandTemplate("晨跑搭子", "每天早上6点半跑步", "活动组队", 0.0),
+        new DemandTemplate("摄影外拍", "周末校园拍照", "活动组队", 0.0)
+    );
+
+    // 固定评价内容
+    private static final List<String> REVIEW_CONTENTS = Arrays.asList(
+        "非常满意，速度快态度好！",
+        "很专业，问题都解决了",
+        "非常好，强烈推荐！",
+        "效率很高，五星好评",
+        "靠谱的人，值得信赖",
+        "沟通顺畅，合作愉快",
+        "认真负责，值得推荐",
+        "响应迅速，解决问题快",
+        "非常专业的服务",
+        "人很nice，必须好评",
+        "有耐心，讲解清楚",
+        "准时守信，很靠谱"
+    );
+
+    // 固定消息内容
+    private static final List<String> MESSAGE_TEMPLATES = Arrays.asList(
+        "你好！我看到你发布了需求，方便聊聊吗？",
+        "请问这个需求还有效吗？",
+        "我可以帮你做这个，什么时候方便？",
+        "谢谢你的帮助！",
+        "好的，我们到时候见",
+        "没问题，交给我吧",
+        "请问具体位置在哪里？",
+        "好的，我已经到了",
+        "辛苦了，非常感谢",
+        "明天几点见面比较合适？",
+        "价格可以再商量一下吗？",
+        "可以的，这个价格我能接受",
+        "合作愉快！",
+        "任务已完成，请验收",
+        "做得很棒，下次还找你"
+    );
 
     @Override
     public void run(String... args) throws Exception {
         System.out.println("======== 开始初始化校园互助平台数据 ========");
         
-        // 1. 初始化超级管理员
-        User rootUser = initSuperAdmin();
+    
+        // 1. 获取所有用户
+        List<User> allUsers = initAllUsers();
         
-        // 2. 初始化普通测试用户
-        List<User> normalUsers = initNormalUsers();
+        if (allUsers.isEmpty()) {
+            System.out.println("没有找到现有用户，请先确保用户已存在");
+            return;
+        }
         
-        // 3. 初始化需求数据
-        List<Demand> demands = initDemands(rootUser, normalUsers);
+        System.out.println("现有用户数量: " + allUsers.size());
         
-        // 4. 初始化订单数据
-        List<com.example.backend.entity.Order> orders = initOrders(demands, normalUsers);
+        // 分离超级管理员和普通用户
+        User superAdmin = allUsers.stream()
+                .filter(User::isSuperAdmin)
+                .findFirst()
+                .orElse(null);
         
-        // 5. 初始化评价数据
-        initReviews(orders, normalUsers);
+        List<User> normalUsers = allUsers.stream()
+                .filter(u -> !u.isSuperAdmin())
+                .collect(Collectors.toList());
         
-        // 6. 初始化对话和消息
-        initConversationsAndMessages(rootUser, normalUsers);
+        System.out.println("普通用户数量: " + normalUsers.size());
         
+        // 2. 清空旧数据（保持外键约束顺序）
+        System.out.println("正在清理旧数据...");
+        messageRepository.deleteAll();
+        conversationRepository.deleteAll();
+        reviewRepository.deleteAll();
+        orderRepository.deleteAll();
+        demandRepository.deleteAll();
+        System.out.println("旧数据清理完成");
+        
+        // 3. 为每个用户生成固定数量的需求
+        List<Demand> allDemands = generateFixedDemands(normalUsers);
+        System.out.println("生成需求 " + allDemands.size() + " 条");
+        
+        // 4. 生成订单和评价
+        List<com.example.backend.entity.Order> allOrders = generateFixedOrdersAndReviews(allDemands, normalUsers);
+        System.out.println("生成订单 " + allOrders.size() + " 条");
+        System.out.println("生成评价 " + reviewRepository.count() + " 条");
+        
+        // 5. 更新用户信用分
+        updateAllUsersScores(normalUsers);
+        
+        // 6. 生成对话和消息
+        int[] convMsgCount = generateFixedConversationsAndMessages(normalUsers);
+        System.out.println("生成对话 " + convMsgCount[0] + " 个，消息 " + convMsgCount[1] + " 条");
+        
+        printStatistics(normalUsers, allDemands, allOrders);
+
         System.out.println("======== 数据初始化完成 ========");
-        System.out.println("统计信息：");
-        System.out.println("  - 用户数：" + (normalUsers.size() + 1));
-        System.out.println("  - 需求数：" + demands.size());
-        System.out.println("  - 订单数：" + orders.size());
-        System.out.println("  - 评分数：" + reviewRepository.count());
-        System.out.println("============================");
     }
     
-    /**
+
+    private List<User> initAllUsers() {
+        List<User> allUsers = userRepository.findAll();
+        if (allUsers.isEmpty()) {
+            User superAdmin = initSuperAdmin();
+            allUsers.add(superAdmin);
+            List<User> normalUsers = initNormalUsers();
+            allUsers.addAll(normalUsers);
+        }
+        return allUsers;
+    }
+
+     /**
      * 初始化超级管理员
      */
     private User initSuperAdmin() {
@@ -123,8 +217,9 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("超级管理员初始化完成：手机号 123456，密码 123456");
         return saved;
     }
-    
-    /**
+
+
+     /**
      * 初始化普通用户（模拟校园学生）
      */
     private List<User> initNormalUsers() {
@@ -163,186 +258,97 @@ public class DataInitializer implements CommandLineRunner {
             users.add(userRepository.save(user));
         }
         
-        // 添加测试用户（手机号1）
-        if (!userRepository.existsByPhone("1")) {
-            User testUser = new User();
-            testUser.setName("测试用户");
-            testUser.setPhone("1");
-            testUser.setPassword(md5("1"));
-            testUser.setScoreNum(0L);
-            testUser.setAverageScore(null);
-            testUser.setAdmin(false);
-            testUser.setSuperAdmin(false);
-            users.add(userRepository.save(testUser));
-            System.out.println("测试用户初始化：手机号 1，密码 1");
-        } else {
-            userRepository.findByPhone("1").ifPresent(users::add);
-        }
-        
         System.out.println("初始化普通用户 " + users.size() + " 人");
         return users;
     }
-    
     /**
-     * 初始化需求数据
+     * 为每个用户生成固定数量的需求
+     * 每个用户发布 3-6 条需求
      */
-    private List<Demand> initDemands(User rootUser, List<User> users) {
+    private List<Demand> generateFixedDemands(List<User> users) {
         List<Demand> demands = new ArrayList<>();
+        int demandIdCounter = 1;
         
-        // 需求数据数组 - 扩展了更多校园场景需求
-        Object[][] demandsData = {
-            // 快递代取类
-            {"急！帮我取个快递", "快递在菜鸟驿站，比较大件，需要两个人帮忙搬到宿舍", "快递代取", "南区菜鸟驿站", 2, 15.0},
-            {"帮忙取快递", "顺丰快递，小件，送到北区宿舍楼下", "快递代取", "北区快递点", 1, 8.0},
-            {"求代取快递", "三个快递，在邮政收发室，送到图书馆", "快递代取", "邮政收发室", 1, 12.0},
-            {"代取大件快递", "买了个行李箱，太重了搬不动，求帮忙", "快递代取", "西门快递点", 1, 20.0},
-            {"紧急取快递", "药品快递，急需使用，在线等", "快递代取", "东门快递柜", 1, 25.0},
+        for (User user : users) {
+            // 每个用户发布3-6条需求
+            int demandCount = 3 + (user.getId().intValue() % 4); // 3,4,5,6
             
-            // 学习辅导类
-            {"考研数学辅导", "需要辅导高等数学，主要是微积分部分，周末有空", "学习辅导", "图书馆自习室", 3, 50.0},
-            {"Java编程作业辅导", "Java课程设计不会做，需要大神指导，在线辅导也可以", "学习辅导", "教学楼A座", 2, 40.0},
-            {"英语四六级辅导", "英语基础薄弱，希望找人一起练习听力和阅读", "学习辅导", "学生活动中心", 4, 35.0},
-            {"大作业代码调试", "Web项目有个bug一直找不到原因，有偿求助", "学习辅导", "线上", 1, 30.0},
-            {"期末复习资料分享", "求计算机网络期末复习资料和往年试题", "学习辅导", "图书馆", 1, 10.0},
-            {"Python数据分析辅导", "机器学习作业不会做，需要指导pandas和numpy", "学习辅导", "计算机实验室", 2, 45.0},
-            {"论文写作指导", "毕业论文格式和内容需要指导，文科专业", "学习辅导", "线上", 1, 60.0},
-            {"C++算法辅导", "数据结构课程实验，图论算法实现困难", "学习辅导", "教学楼B座", 2, 40.0},
-            {"英语口语练习伙伴", "准备雅思考试，找口语练习搭档", "学习辅导", "咖啡厅", 1, 30.0},
-            
-            // 二手交易类
-            {"出二手电动车", "九成新电动车，骑了半年，续航30km，带发票", "二手交易", "南区宿舍", 0, 800.0},
-            {"二手教材出售", "大一到大三计算机专业教材，几乎全新，打包优惠", "二手交易", "北区宿舍", 0, 150.0},
-            {"出吉他", "练习吉他，买来没用几次，适合新手", "二手交易", "学生活动中心", 1, 200.0},
-            {"求购二手自行车", "预算200左右，要求能正常骑行", "二手交易", "全校", 2, 200.0},
-            {"毕业甩卖小电器", "台灯、风扇、电水壶等，价格便宜", "二手交易", "南区宿舍", 3, 50.0},
-            {"出售笔记本电脑", "联想ThinkPad，i5处理器，8G内存，适合办公学习", "二手交易", "北区宿舍", 1, 2500.0},
-            {"出运动鞋", "Nike运动鞋，42码，穿过两次，95新", "二手交易", "体育馆", 1, 300.0},
-            {"求购考研资料", "计算机考研专业课资料，最好是408统考", "二手交易", "图书馆", 2, 100.0},
-            {"出售相机", "佳能单反相机，入门级，带镜头和配件", "二手交易", "学生活动中心", 1, 1800.0},
-            {"出桌游卡牌", "各种桌游和卡牌游戏，聚会必备", "二手交易", "宿舍区", 2, 80.0},
-            
-            // 活动组队类
-            {"周末羽毛球约球", "本人菜鸟，想找人一起打羽毛球锻炼身体", "活动组队", "体育馆", 2, 0.0},
-            {"组队参加校园马拉松", "5km组，找一起跑步的小伙伴", "活动组队", "体育场", 3, 0.0},
-            {"读书会招募", "每周三晚上一起读书分享，这周读《活着》", "活动组队", "图书馆研讨室", 1, 0.0},
-            {"王者荣耀开黑", "找稳定队友上分，主玩中路辅助", "活动组队", "线上", 2, 0.0},
-            {"摄影爱好者外拍", "周末去校园拍秋景，找摄影同好一起", "活动组队", "校园内", 1, 0.0},
-            {"篮球友谊赛组队", "缺两个后卫，周末下午比赛", "活动组队", "篮球场", 2, 0.0},
-            {"创业比赛组队", "互联网+大赛，需要有技术和设计能力的同学", "活动组队", "创业孵化中心", 3, 0.0},
-            {"音乐节志愿者", "校园音乐节招募志愿者，有证书", "活动组队", "学生活动中心", 5, 0.0},
-            {"登山徒步活动", "周六去郊外爬山，注意安全装备", "活动组队", "校门口集合", 4, 0.0},
-            {"电竞比赛报名", "英雄联盟校内赛，缺ADC位置", "活动组队", "线上", 1, 0.0},
-            
-            // 其他类
-            {"帮忙占座", "明天上午图书馆三楼靠窗位置，有偿", "其他", "图书馆", 1, 5.0},
-            {"寻物启事", "丢失蓝色水杯一个，捡到请联系", "其他", "教学楼", 0, 0.0},
-            {"上门喂猫", "周末出门两天，需要帮忙喂一下小猫", "其他", "北区宿舍", 1, 30.0},
-            {"帮忙打印资料", "需要打印50页双面，彩色打印", "其他", "打印店", 1, 15.0},
-            {"临时搬运工", "搬家需要帮忙搬东西，大概2小时", "其他", "南区宿舍", 2, 40.0},
-            {"代购食堂饭菜", "生病在宿舍，帮忙带份午饭", "其他", "第一食堂", 1, 5.0},
-            {"帮忙修电脑", "电脑蓝屏无法开机，需要技术支援", "其他", "宿舍区", 1, 30.0},
-            {"代排队", "热门讲座需要代排队入场", "其他", "报告厅", 1, 10.0},
-            {"宠物临时照顾", "出差三天，需要帮忙照顾狗狗", "其他", "校外", 1, 100.0},
-            {"帮忙投票", "网络评选活动，需要帮忙投票点赞", "其他", "线上", 1, 5.0},
-        };
-        
-        List<User> allUsers = new ArrayList<>(users);
-        allUsers.add(rootUser);
-        
-        for (int i = 0; i < demandsData.length; i++) {
-            Object[] data = demandsData[i];
-            Long publisherId = allUsers.get(random.nextInt(allUsers.size())).getId();
-            
-            // 设置截止时间（3天到30天不等）
-            LocalDateTime deadline = LocalDateTime.now().plusDays(3 + random.nextInt(27));
-            
-            // 判断是否有报酬
-            Double reward = (Double) data[5];
-            
-            Demand demand = new Demand();
-            demand.setTitle((String) data[0]);
-            demand.setDescription((String) data[1]);
-            demand.setCategory((String) data[2]);
-            demand.setPublisherId(publisherId);
-            demand.setLocation((String) data[3]);
-            demand.setDeadline(deadline);
-            demand.setReward(reward);
-            
-            // 设置状态（大部分为PENDING，少量为其他状态）
-            String status;
-            int statusRand = random.nextInt(10);
-            if (statusRand < 6) {
-                status = "PENDING";
-            } else if (statusRand < 8) {
-                status = "ACCEPTED";
-            } else {
-                status = "COMPLETED";
+            for (int i = 0; i < demandCount; i++) {
+                DemandTemplate template = DEMAND_TEMPLATES.get(
+                    (demandIdCounter + i) % DEMAND_TEMPLATES.size()
+                );
+                
+                Demand demand = new Demand();
+                demand.setTitle(template.title);
+                demand.setDescription(template.description);
+                demand.setCategory(template.category);
+                demand.setPublisherId(user.getId());
+                
+                // 固定地点循环
+                demand.setLocation(LOCATIONS.get((demandIdCounter + i) % LOCATIONS.size()));
+                demand.setReward(template.reward);
+                demand.setDeadline(LocalDateTime.now().plusDays(7 + (i % 14)));
+                
+                // 状态分配：前2条已完成，其余活跃
+                if (i < 2) {
+                    demand.setStatus("COMPLETED");
+                } else {
+                    demand.setStatus(i % 2 == 0 ? "PENDING" : "ACCEPTED");
+                }
+
+                //随机添加图片（测试图片）
+                if(i % 3 == 0 || i % 5 ==  0){
+                    demand.setPictureUrls("/api/files/test.jpg");
+                }
+                
+                // 创建时间：最近30天内
+                demand.setCreatedAt(LocalDateTime.now().minusDays(demandIdCounter % 30));
+                demand.setUpdatedAt(demand.getCreatedAt());
+                
+                Demand saved = demandRepository.save(demand);
+                demands.add(saved);
+                demandIdCounter++;
             }
-            demand.setStatus(status);
-            
-            demand.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(30)));
-            demand.setUpdatedAt(demand.getCreatedAt());
-            
-            // 随机添加图片
-            if (random.nextBoolean()) {
-                demand.setPictureUrls("/images/demand_" + (i + 1) + ".jpg");
-            }
-            
-            demands.add(demandRepository.save(demand));
         }
         
-        System.out.println("初始化需求 " + demands.size() + " 条");
         return demands;
     }
     
-
     /**
-     * 初始化订单数据（基于已接受的需求）
+     * 生成固定订单和评价
+     * 确保每个用户都有作为接单者的订单和评价
      */
-    private List<com.example.backend.entity.Order> initOrders(List<Demand> demands, List<User> users) {
+    private List<com.example.backend.entity.Order> generateFixedOrdersAndReviews(List<Demand> demands, List<User> users) {
         List<com.example.backend.entity.Order> orders = new ArrayList<>();
-        List<User> allUsers = new ArrayList<>(users);
+        int userCount = users.size();
         
-        for (Demand demand : demands) {
-            // 只为 ACCEPTED 或 COMPLETED 状态的需求创建订单
-            if (!"ACCEPTED".equals(demand.getStatus()) && !"COMPLETED".equals(demand.getStatus())) {
-                continue;
-            }
-            
-            // 找接单者（不能是发布者自己）
-            Long acceptorId;
-            do {
-                acceptorId = allUsers.get(random.nextInt(allUsers.size())).getId();
-            } while (acceptorId.equals(demand.getPublisherId()));
+        // 为每个已完成的需求创建订单
+        List<Demand> completedDemands = demands.stream()
+                .filter(d -> "COMPLETED".equals(d.getStatus()))
+                .collect(Collectors.toList());
+        
+        int orderIdCounter = 1;
+        
+        for (Demand demand : completedDemands) {
+            // 选择不同的接单者（不能是发布者自己）
+            Long publisherId = demand.getPublisherId();
+            User acceptor = findDifferentUser(users, publisherId, orderIdCounter);
             
             com.example.backend.entity.Order order = new com.example.backend.entity.Order();
             order.setDemandId(demand.getId());
-            order.setPublisherId(demand.getPublisherId());
-            order.setAcceptorId(acceptorId);
+            order.setPublisherId(publisherId);
+            order.setAcceptorId(acceptor.getId());
+            order.setStatus("COMPLETED");
             
-            // 订单状态
-            String orderStatus = "ACCEPTED".equals(demand.getStatus()) ? "ACCEPTED" : "COMPLETED";
-            order.setStatus(orderStatus);
+            // 时间线
+            LocalDateTime createdAt = demand.getCreatedAt().plusHours(orderIdCounter % 24);
+            order.setCreatedAt(createdAt);
+            LocalDateTime completedAt = createdAt.plusDays(1 + (orderIdCounter % 5));
+            order.setCompletedAt(completedAt);
+            order.setUpdatedAt(completedAt);
             
-            order.setCreatedAt(demand.getCreatedAt().plusHours(random.nextInt(24)));
-            order.setUpdatedAt(order.getCreatedAt());
-            
-            if ("COMPLETED".equals(orderStatus)) {
-                order.setCompletedAt(order.getCreatedAt().plusDays(random.nextInt(7) + 1));
-                order.setUpdatedAt(order.getCompletedAt());
-            }
-            
-            // 添加备注
-            String[] notes = {
-                "好的，我来帮你", 
-                "请问具体什么时候方便", 
-                "没问题，保证完成任务",
-                "收到，马上联系你",
-                "可以，我们详聊",
-                "OK，交给我吧",
-                "明白了，我会尽快处理"
-            };
-            order.setLatestRequesterNote(notes[random.nextInt(notes.length)]);
+            String[] notes = {"好的，我来帮你", "没问题，保证完成任务", "收到，马上联系你", "OK，交给我吧"};
+            order.setLatestRequesterNote(notes[orderIdCounter % notes.length]);
             
             com.example.backend.entity.Order savedOrder = orderRepository.save(order);
             orders.add(savedOrder);
@@ -350,184 +356,252 @@ public class DataInitializer implements CommandLineRunner {
             // 更新需求的orderId
             demand.setOrderId(savedOrder.getId());
             demandRepository.save(demand);
+            
+            // 发布者给接单者评价（固定好评）
+            Review review = createReview(
+                savedOrder.getId(),
+                publisherId,
+                acceptor.getId(),
+                4 + (orderIdCounter % 2), // 4或5分
+                REVIEW_CONTENTS.get(orderIdCounter % REVIEW_CONTENTS.size())
+            );
+            reviewRepository.save(review);
+            savedOrder.setCommentId(review.getId());
+            orderRepository.save(savedOrder);
+            
+            // 80%的概率双向评价（接单者给发布者评价）
+            if (orderIdCounter % 5 != 0) {
+                Review review2 = createReview(
+                    savedOrder.getId(),
+                    acceptor.getId(),
+                    publisherId,
+                    4 + ((orderIdCounter + 1) % 2),
+                    REVIEW_CONTENTS.get((orderIdCounter + 1) % REVIEW_CONTENTS.size())
+                );
+                reviewRepository.save(review2);
+            }
+            
+            orderIdCounter++;
         }
         
-        System.out.println("初始化订单 " + orders.size() + " 条");
-        return orders;
-    }
-
-    /**
-     * 初始化评价数据
-     */
-    private void initReviews(List<com.example.backend.entity.Order> orders, List<com.example.backend.entity.User> users) {
-        List<com.example.backend.entity.Review> reviews = new ArrayList<>();
+        // 确保每个用户都有至少2条作为接单者的完成订单
+        Map<Long, Integer> acceptorOrderCount = new HashMap<>();
+        for (User user : users) {
+            acceptorOrderCount.put(user.getId(), 0);
+        }
         
         for (com.example.backend.entity.Order order : orders) {
-            // 只为已完成订单创建评价
-            if (!"COMPLETED".equals(order.getStatus())) {
-                continue;
-            }
+            acceptorOrderCount.merge(order.getAcceptorId(), 1, Integer::sum);
+        }
+        
+        // 为缺少订单的用户补充订单
+        for (User user : users) {
+            int currentCount = acceptorOrderCount.getOrDefault(user.getId(), 0);
+            int needed = Math.max(0, 2 - currentCount);
             
-            // 随机决定是否已有评价（降低跳过概率，让更多订单有评价）
-            if (random.nextDouble() > 0.4) { // 60%的完成订单有评价
-                continue;
-            }
-            
-            Demand demand = demandRepository.findById(order.getDemandId()).orElse(null);
-            if (demand == null) continue;
-            
-            // 创建评价（发布者评价接单者）
-            int score = 3 + random.nextInt(3); // 3-5分
-            String[] reviewContents = {
-                "非常满意，速度快态度好！",
-                "还不错，希望下次还能合作",
-                "很专业，问题都解决了",
-                "非常好，强烈推荐！",
-                "一般般，还有提升空间",
-                "很棒的小伙伴，给力！",
-                "感谢帮忙，下次还找你",
-                "效率很高，五星好评",
-                "服务态度很好，满意",
-                "完美解决我的问题，谢谢",
-                "靠谱的人，值得信赖",
-                "沟通顺畅，合作愉快"
-            };
-            
-            Review review1 = new Review();
-            review1.setOrderId(order.getId());
-            review1.setReviewerId(order.getPublisherId());
-            review1.setReviewedId(order.getAcceptorId());
-            review1.setScore(score);
-            review1.setContent(reviewContents[random.nextInt(reviewContents.length)]);
-            review1.setCreatedAt(order.getCompletedAt().plusHours(random.nextInt(48)));
-            
-            Review savedReview = reviewRepository.save(review1);
-            reviews.add(savedReview);
-            
-            // 更新订单的commentId
-            order.setCommentId(savedReview.getId());
-            orderRepository.save(order);
-            
-            // 更新用户评分
-            updateUserAverageScore(order.getAcceptorId());
-            
-            // 提高双向评价概率（70%的订单会有双方互评）
-            if (random.nextDouble() > 0.3) {
-                int score2 = 3 + random.nextInt(3);
-                Review review2 = new Review();
-                review2.setOrderId(order.getId());
-                review2.setReviewerId(order.getAcceptorId());
-                review2.setReviewedId(order.getPublisherId());
-                review2.setScore(score2);
-                review2.setContent(reviewContents[random.nextInt(reviewContents.length)]);
-                review2.setCreatedAt(review1.getCreatedAt().plusHours(random.nextInt(24)));
-                reviewRepository.save(review2);
+            for (int i = 0; i < needed; i++) {
+                // 找该用户未完成的需求
+                List<Demand> pendingDemands = demands.stream()
+                        .filter(d -> !"COMPLETED".equals(d.getStatus()) 
+                                && !d.getPublisherId().equals(user.getId()))
+                        .collect(Collectors.toList());
                 
-                updateUserAverageScore(order.getPublisherId());
+                if (pendingDemands.isEmpty()) continue;
+                
+                Demand demand = pendingDemands.get(i % pendingDemands.size());
+                
+                com.example.backend.entity.Order order = new com.example.backend.entity.Order();
+                order.setDemandId(demand.getId());
+                order.setPublisherId(demand.getPublisherId());
+                order.setAcceptorId(user.getId());
+                order.setStatus("COMPLETED");
+                
+                LocalDateTime createdAt = LocalDateTime.now().minusDays(10 + i);
+                order.setCreatedAt(createdAt);
+                LocalDateTime completedAt = createdAt.plusDays(2);
+                order.setCompletedAt(completedAt);
+                order.setUpdatedAt(completedAt);
+                order.setLatestRequesterNote("我来帮你完成这个任务");
+                
+                com.example.backend.entity.Order savedOrder = orderRepository.save(order);
+                orders.add(savedOrder);
+                
+                demand.setStatus("COMPLETED");
+                demand.setOrderId(savedOrder.getId());
+                demandRepository.save(demand);
+                
+                // 添加评价
+                Review review = createReview(
+                    savedOrder.getId(),
+                    demand.getPublisherId(),
+                    user.getId(),
+                    4,
+                    "非常满意，谢谢！"
+                );
+                reviewRepository.save(review);
+                savedOrder.setCommentId(review.getId());
+                orderRepository.save(savedOrder);
             }
         }
         
-        System.out.println("初始化评价 " + reviews.size() + " 条");
+        return orders;
     }
     
     /**
-     * 更新用户的平均评分
+     * 创建评价对象
      */
-    private void updateUserAverageScore(Long userId) {
-        Double avgScore = reviewRepository.getAverageScoreForUser(userId);
-        Long scoreCount = reviewRepository.getScoreCountForUser(userId);
+    private Review createReview(Long orderId, Long reviewerId, Long reviewedId, int score, String content) {
+        Review review = new Review();
+        review.setOrderId(orderId);
+        review.setReviewerId(reviewerId);
+        review.setReviewedId(reviewedId);
+        review.setScore(score);
+        review.setContent(content);
+        review.setCreatedAt(LocalDateTime.now().minusDays((int)(Math.random() * 10)));
+        return review;
+    }
+    
+    /**
+     * 找一个不同的用户
+     */
+    private User findDifferentUser(List<User> users, Long excludeId, int seed) {
+        List<User> candidates = users.stream()
+                .filter(u -> !u.getId().equals(excludeId))
+                .collect(Collectors.toList());
         
-        if (avgScore != null && scoreCount != null) {
-            userRepository.updateUserScore(userId, avgScore, scoreCount);
+        if (candidates.isEmpty()) {
+            return users.get(0);
+        }
+        
+        return candidates.get(seed % candidates.size());
+    }
+    
+    /**
+     * 更新所有用户的信用分
+     */
+    private void updateAllUsersScores(List<User> users) {
+        for (User user : users) {
+            Double avgScore = reviewRepository.getAverageScoreForUser(user.getId());
+            Long scoreCount = reviewRepository.getScoreCountForUser(user.getId());
+            
+            if (avgScore != null && scoreCount != null && scoreCount > 0) {
+                userRepository.updateUserScore(user.getId(), avgScore, scoreCount);
+                System.out.printf("用户 %s 信用分: %.1f (%d条评价)\n", 
+                    user.getName(), avgScore, scoreCount);
+            } else {
+                // 没有评价的用户给一个默认评分
+                userRepository.updateUserScore(user.getId(), 4.0, 1L);
+                System.out.printf("用户 %s 无评价，设置默认信用分 4.0\n", user.getName());
+            }
         }
     }
     
     /**
-     * 初始化对话和消息
+     * 生成固定对话和消息
+     * 每个用户至少与其他2个用户有对话
      */
-    private void initConversationsAndMessages(User rootUser, List<User> users) {
-        List<User> allUsers = new ArrayList<>(users);
-        allUsers.add(rootUser);
-        
+    private int[] generateFixedConversationsAndMessages(List<User> users) {
         int conversationCount = 0;
         int messageCount = 0;
+        int userCount = users.size();
         
-        // 为每对用户创建一些对话（扩大范围到前10个用户）
-        for (int i = 0; i < allUsers.size() && i < 10; i++) {
-            for (int j = i + 1; j < allUsers.size() && j < 10; j++) {
-                User user1 = allUsers.get(i);
-                User user2 = allUsers.get(j);
+        // 确保每个用户至少与其他2个用户有对话
+        for (int i = 0; i < userCount; i++) {
+            User user1 = users.get(i);
+            
+            // 每个用户与后面2-3个用户建立对话
+            int targetCount = Math.min(3, userCount - 1);
+            
+            for (int j = 1; j <= targetCount; j++) {
+                int otherIndex = (i + j) % userCount;
+                if (otherIndex == i) continue;
+                
+                User user2 = users.get(otherIndex);
                 
                 // 检查是否已存在对话
                 if (conversationRepository.findConversationBetweenUsers(user1.getId(), user2.getId()).isPresent()) {
                     continue;
                 }
                 
-                // 提高创建对话的概率（70%概率创建对话）
-                if (random.nextDouble() > 0.7) {
-                    continue;
-                }
-                
                 // 创建对话
                 Conversation conversation = new Conversation(user1.getId(), user2.getId());
-                conversation.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(20)));
+                conversation.setCreatedAt(LocalDateTime.now().minusDays(15 + i * 2));
                 Conversation savedConv = conversationRepository.save(conversation);
                 conversationCount++;
                 
-                // 创建更多消息（3-12条）
-                int messageCountForConv = 3 + random.nextInt(10);
+                // 生成固定数量消息（6-12条）
+                int msgCount = 6 + ((i + j) % 7);
                 LocalDateTime msgTime = savedConv.getCreatedAt();
                 
-                for (int k = 0; k < messageCountForConv; k++) {
+                Long lastMessageId = null;
+                LocalDateTime lastMessageTime = msgTime;
+                
+                for (int k = 0; k < msgCount; k++) {
                     Long senderId = (k % 2 == 0) ? user1.getId() : user2.getId();
                     Long receiverId = (senderId.equals(user1.getId())) ? user2.getId() : user1.getId();
                     
-                    String[] messages = {
-                        "你好！我看到你发布了需求，方便聊聊吗？",
-                        "请问这个需求还有效吗？",
-                        "我可以帮你做这个，什么时候方便？",
-                        "谢谢你的帮助！",
-                        "不客气，有问题随时联系",
-                        "好的，我们到时候见",
-                        "抱歉，我刚看到消息",
-                        "没问题，交给我吧",
-                        "请问具体位置在哪里？",
-                        "好的，我已经到了",
-                        "辛苦了，非常感谢",
-                        "明天几点见面比较合适？",
-                        "价格可以再商量一下吗？",
-                        "可以的，这个价格我能接受",
-                        "那就这么定了",
-                        "我这边有点事，可能要晚一点",
-                        "没关系，我不着急",
-                        "已经完成啦，请确认一下",
-                        "收到了，很满意",
-                        "下次有需要再找你"
-                    };
+                    String content = MESSAGE_TEMPLATES.get(k % MESSAGE_TEMPLATES.size());
                     
-                    Message message = new Message(senderId, receiverId, 
-                        messages[random.nextInt(messages.length)], savedConv.getId());
-                    message.setCreatedAt(msgTime.plusMinutes(k * 5 + random.nextInt(60)));
-                    message.setRead(random.nextBoolean());
+                    Message message = new Message(senderId, receiverId, content, savedConv.getId());
+                    message.setCreatedAt(msgTime.plusMinutes(k * 5 + k * 2));
+                    message.setRead(k < msgCount - 1); // 最后一条未读
                     
-                    messageRepository.save(message);
+                    Message savedMsg = messageRepository.save(message);
                     messageCount++;
+                    lastMessageId = savedMsg.getId();
+                    lastMessageTime = savedMsg.getCreatedAt();
                 }
                 
-                // 更新最后一条消息
-                messageRepository.findByConversationIdOrderByCreatedAtAsc(savedConv.getId())
-                    .stream().reduce((first, second) -> second)
-                    .ifPresent(lastMsg -> {
-                        savedConv.setLastMessageId(lastMsg.getId());
-                        savedConv.setLastMessageTime(lastMsg.getCreatedAt());
-                        conversationRepository.save(savedConv);
-                    });
+                // 更新最后消息
+                if (lastMessageId != null) {
+                    savedConv.setLastMessageId(lastMessageId);
+                    savedConv.setLastMessageTime(lastMessageTime);
+                    conversationRepository.save(savedConv);
+                }
             }
         }
         
-        System.out.println("初始化对话 " + conversationCount + " 个，消息 " + messageCount + " 条");
+        return new int[]{conversationCount, messageCount};
+    }
+    
+    /**
+     * 打印统计信息
+     */
+    private void printStatistics(List<User> users, List<Demand> demands, List<com.example.backend.entity.Order> orders) {
+        System.out.println("============================");
+        System.out.println("最终统计信息：");
+        System.out.println("  - 用户数：" + users.size());
+        System.out.println("  - 总需求数：" + demands.size());
+        System.out.println("  - 已完成需求：" + demands.stream().filter(d -> "COMPLETED".equals(d.getStatus())).count());
+        System.out.println("  - 进行中需求：" + demands.stream().filter(d -> "PENDING".equals(d.getStatus())).count());
+        System.out.println("  - 已接单需求：" + demands.stream().filter(d -> "ACCEPTED".equals(d.getStatus())).count());
+        System.out.println("  - 订单数：" + orders.size());
+        System.out.println("  - 评分数：" + reviewRepository.count());
+        System.out.println("  - 对话数：" + conversationRepository.count());
+        System.out.println("  - 消息数：" + messageRepository.count());
+        
+        // 打印每个用户的统计
+        System.out.println("\n用户详细统计：");
+        for (User user : users) {
+            long demandCount = demandRepository.findByPublisherId(user.getId(), null).getTotalElements();
+            long orderCount = orderRepository.findAllByUserId(user.getId(), null).getTotalElements();
+            Long reviewCount = reviewRepository.getScoreCountForUser(user.getId());
+            long convCount = conversationRepository.countByUserId(user.getId());
+            long unreadCount = messageRepository.countUnreadMessagesByUserId(user.getId());
+            
+            System.out.printf("  - %s (ID:%d): 需求%d条, 订单%d个, 评价%d条, 对话%d个, 未读%d条, 信用分%.1f\n",
+                    user.getName(), user.getId(),
+                    demandCount, orderCount,
+                    reviewCount != null ? reviewCount : 0, 
+                    convCount, unreadCount,
+                    user.getAverageScore() != null ? user.getAverageScore() : 0);
+        }
+        System.out.println("============================");
     }
 
+    /**
+     * MD5加密
+     */
     private String md5(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
@@ -539,6 +613,23 @@ public class DataInitializer implements CommandLineRunner {
             return sb.toString();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("MD5 algorithm not found", e);
+        }
+    }
+    
+    /**
+     * 需求模板内部类
+     */
+    private static class DemandTemplate {
+        final String title;
+        final String description;
+        final String category;
+        final double reward;
+        
+        DemandTemplate(String title, String description, String category, double reward) {
+            this.title = title;
+            this.description = description;
+            this.category = category;
+            this.reward = reward;
         }
     }
 }

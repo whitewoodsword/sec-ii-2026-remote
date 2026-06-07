@@ -18,7 +18,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const goToHomePage = () => {
-  router.push('/homepage')
+  router.push('/')
 }
 </script>
 

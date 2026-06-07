@@ -9,8 +9,6 @@ import CreateDemandPage from '../components/CreateDemandPage.vue';
 import EditDemandPage from '../components/EditDemandPage.vue';
 import DemandDetailPage from '../components/DemandDetailPage.vue';
 import MyDemandsPage from '../components/MyDemandsPage.vue';
-import OrderWorkbenchPage from '../components/OrderWorkbenchPage.vue';
-import ReviewPage from '../views/ReviewPage.vue'
 import OrderDetailPage from '../components/OrderDetailPage.vue'
 import MyOrdersPage from '../components/MyOrdersPage.vue'
 import MyConversationsPage from '../components/MyConversationsPage.vue'
@@ -70,19 +68,9 @@ const routes = [
         component: LogInPage
     },
     {
-        path: '/orders/workbench',
-        name: 'orderWorkbench',
-        component: OrderWorkbenchPage
-    },
-    {
         path: '/order/:id',
         name: 'orderDetail',
         component: OrderDetailPage
-    },
-    {
-        path: '/review',
-        name: 'reviewPage',
-        component: ReviewPage
     },
     {
         path: '/my/orders',

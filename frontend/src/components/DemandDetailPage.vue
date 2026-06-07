@@ -14,6 +14,11 @@ const loading = ref(false)
 const statusUpdating = ref(false)
 const publisherInfo = ref(null) // 添加发布者信息
 
+// 图片预览相关状态
+const isPreviewVisible = ref(false)
+const previewImageUrl = ref('')
+const currentImageIndex = ref(0)
+
 // 通知框
 const showAlert = ref(false)
 const alertConfig = ref({
@@ -43,6 +48,51 @@ const pictureUrls = computed(() => {
   if (!demand.value?.pictureUrls) return []
   return demand.value.pictureUrls.split(';').filter(url => url.trim())
 })
+
+// 图片预览功能
+const openImagePreview = (index) => {
+  if (!pictureUrls.value.length) return
+  currentImageIndex.value = index
+  const fullUrl = 'http://localhost:8080' + pictureUrls.value[index]
+  previewImageUrl.value = fullUrl
+  isPreviewVisible.value = true
+  // 禁止背景滚动
+  document.body.style.overflow = 'hidden'
+}
+
+const closeImagePreview = () => {
+  isPreviewVisible.value = false
+  previewImageUrl.value = ''
+  currentImageIndex.value = 0
+  // 恢复背景滚动
+  document.body.style.overflow = ''
+}
+
+const prevImage = () => {
+  if (currentImageIndex.value > 0) {
+    currentImageIndex.value--
+    previewImageUrl.value = 'http://localhost:8080' + pictureUrls.value[currentImageIndex.value]
+  }
+}
+
+const nextImage = () => {
+  if (currentImageIndex.value < pictureUrls.value.length - 1) {
+    currentImageIndex.value++
+    previewImageUrl.value = 'http://localhost:8080' + pictureUrls.value[currentImageIndex.value]
+  }
+}
+
+// 键盘事件处理
+const handleKeydown = (e) => {
+  if (!isPreviewVisible.value) return
+  if (e.key === 'ArrowLeft') {
+    prevImage()
+  } else if (e.key === 'ArrowRight') {
+    nextImage()
+  } else if (e.key === 'Escape') {
+    closeImagePreview()
+  }
+}
 
 // 状态映射
 const statusMap = {
@@ -247,6 +297,14 @@ const getAvatarUrl = (avatarPath) => {
 
 onMounted(() => {
   fetchDemand()
+  // 添加键盘事件监听
+  window.addEventListener('keydown', handleKeydown)
+})
+
+// 组件卸载时移除键盘事件监听
+import { onUnmounted } from 'vue'
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
@@ -356,7 +414,7 @@ onMounted(() => {
                 v-for="(url, index) in pictureUrls"
                 :key="index"
                 class="image-item"
-                @click="window.open('http://localhost:8080' + url, '_blank')"
+                @click="openImagePreview(index)"
             >
               <img :src="'http://localhost:8080' + url" :alt="`图片${index + 1}`" />
             </div>
@@ -408,6 +466,46 @@ onMounted(() => {
         <button class="back-home-btn" @click="router.push('/demands')">返回列表</button>
       </div>
     </div>
+
+    <!-- 图片预览模态框 -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="isPreviewVisible" class="image-preview-overlay" @click="closeImagePreview">
+          <div class="preview-container" @click.stop>
+            <!-- 关闭按钮 -->
+            <button class="preview-close" @click="closeImagePreview">×</button>
+            
+            <!-- 上一张按钮 -->
+            <button 
+              v-if="pictureUrls.length > 1" 
+              class="preview-nav prev" 
+              @click="prevImage"
+              :disabled="currentImageIndex === 0"
+            >
+              ‹
+            </button>
+            
+            <!-- 图片 -->
+            <div class="preview-image-wrapper">
+              <img :src="previewImageUrl" :alt="`图片${currentImageIndex + 1}`" />
+              <div v-if="pictureUrls.length > 1" class="image-counter">
+                {{ currentImageIndex + 1 }} / {{ pictureUrls.length }}
+              </div>
+            </div>
+            
+            <!-- 下一张按钮 -->
+            <button 
+              v-if="pictureUrls.length > 1" 
+              class="preview-nav next" 
+              @click="nextImage"
+              :disabled="currentImageIndex === pictureUrls.length - 1"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- 通知框 -->
     <AlertBox
@@ -831,6 +929,129 @@ onMounted(() => {
   cursor: pointer;
 }
 
+/* 图片预览模态框样式 */
+.image-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.preview-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.preview-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 36px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.preview-nav:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.preview-nav.prev {
+  left: 30px;
+}
+
+.preview-nav.next {
+  right: 30px;
+}
+
+.preview-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.preview-image-wrapper {
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-image-wrapper img {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.image-counter {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border-radius: 20px;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+/* 过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 /* 响应式 */
 @media (max-width: 640px) {
   .detail-container {
@@ -882,6 +1103,29 @@ onMounted(() => {
   .publisher-stats {
     font-size: 11px;
     gap: 12px;
+  }
+
+  /* 移动端预览样式调整 */
+  .preview-nav {
+    width: 40px;
+    height: 40px;
+    font-size: 28px;
+  }
+
+  .preview-nav.prev {
+    left: 10px;
+  }
+
+  .preview-nav.next {
+    right: 10px;
+  }
+
+  .preview-close {
+    top: 10px;
+    right: 10px;
+    width: 35px;
+    height: 35px;
+    font-size: 24px;
   }
 }
 </style>

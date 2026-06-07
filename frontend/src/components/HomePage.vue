@@ -183,7 +183,7 @@
           <div class="credit-card">
             <h3 class="card-title">我的信用</h3>
             <div class="credit-score-large">
-              <span class="score-number">{{ userCredit.averageScore !== null ? userCredit.averageScore.toFixed(1) : '暂无' }}</span>
+              <span class="score-number">{{ userCredit.averageScore !== null ? userCredit.averageScore.toFixed(2) : '暂无' }}</span>
               <span class="score-label">信用分</span>
             </div>
             <div class="credit-stats">

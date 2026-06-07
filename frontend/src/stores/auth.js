@@ -12,7 +12,7 @@ export const useAuthStore = defineStore('auth', () => {
   
   // 方法
   function setAuth(data) {
-    token.value = data.token
+    token.value = token.value ||data.token
     user.value = data.user || null
     
     // 持久化存储

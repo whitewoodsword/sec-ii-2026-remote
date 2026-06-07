@@ -55,7 +55,7 @@
             <div class="user-stats">
               <div class="stat-item">
                 <span class="stat-label">平均评分</span>
-                <span class="stat-value">{{ userScoreInfo.averageScore ?? '暂无' }}</span>
+                <span class="stat-value">{{ userScoreInfo.averageScore !== null ? userScoreInfo.averageScore.toFixed(2) : '暂无' }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">评价次数</span>
@@ -130,15 +130,12 @@
             <h3 class="card-title">我的服务</h3>
             <div class="button-grid">
               <button class="action-btn" @click="handleMyOrders">
-                <span class="btn-icon">📋</span>
                 我的订单
               </button>
               <button class="action-btn" @click="handleMessagesCenter">
-                <span class="btn-icon">💬</span>
                 我的消息
               </button>
               <button class="action-btn" @click="handleMyDemands">
-                <span class="btn-icon">📢</span>
                 我的需求
               </button>
             </div>
@@ -403,15 +400,45 @@ const initUserInfo = async () => {
     return
   }
   
-  // 设置显示用的昵称
-  displayName.value = authStore.user?.name || ''
-  
-  // 模拟示例数据（实际应替换为真实API调用）
-  userScoreInfo.value = {
-    averageScore: authStore.user?.averageScore || null,
-    scoreNum: authStore.user?.scoreNum || null
+  try {
+    // 从后端获取最新的用户信息
+    const response = await axios.get(`http://localhost:8080/users/${authStore.user?.id}`)
+    
+    if (response.data.code === 200 && response.data.data) {
+      const userData = response.data.data
+      console.log('用户信息:', userData)
+      authStore.setAuth({ token: authStore.token || null, user: userData })
+      
+      // 持久化存储到localStorage
+      
+      // 设置显示用的昵称
+      displayName.value = userData.name || ''
+      
+      // 设置评分信息
+      userScoreInfo.value = {
+        averageScore: userData.averageScore,
+        scoreNum: userData.scoreNum
+      }
+    } else {
+      console.error('获取用户信息失败:', response.data.message)
+      // 如果API调用失败，使用本地存储的信息
+      displayName.value = authStore.user?.name || ''
+      userScoreInfo.value = {
+        averageScore: authStore.user?.averageScore || null,
+        scoreNum: authStore.user?.scoreNum || null
+      }
+    }
+  } catch (error) {
+    console.error('获取用户信息异常:', error)
+    // 发生错误时，使用本地存储的信息
+    displayName.value = authStore.user?.name || ''
+    userScoreInfo.value = {
+      averageScore: authStore.user?.averageScore || null,
+      scoreNum: authStore.user?.scoreNum || null
+    }
   }
 }
+
 
 onMounted(() => {
   initUserInfo()
@@ -834,9 +861,7 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(98, 5, 95, 0.2);
 }
 
-.btn-icon {
-  font-size: 18px;
-}
+
 
 /* 响应式调整 */
 @media (max-width: 768px) {

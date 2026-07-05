@@ -54,3 +54,13 @@ docker-compose.override.yml
 
 logs/
 *.log
+
+# Local presentation extraction artifacts
+CampusHub.zip
+_ppt_extract/
+
+# Personal files not related to course deliverables
+docs/P4/刘渝川-实习简历.html
+docs/P4/刘渝川-实习简历.md
+docs/P4/刘渝川-实习简历.pdf
+docs/P4/刘渝川-证件照.png
